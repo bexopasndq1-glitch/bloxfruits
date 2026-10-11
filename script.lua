@@ -9,32 +9,28 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 
-local FLY_SPEEDS = {90, 130, 170, 220}  -- варианты скорости полёта, студов/сек (выбор в Misc)
+local FLY_SPEEDS = {90, 130, 170, 220}
 local flySpeedIndex = 1
-local FLY_SPEED = FLY_SPEEDS[flySpeedIndex]  -- меньше = безопаснее для античита
-local FARM_HEIGHTS = {20, 30, 45, 60}   -- варианты высоты фарма (выбор в Combat)
+local FLY_SPEED = FLY_SPEEDS[flySpeedIndex]
+local FARM_HEIGHTS = {20, 30, 45, 60}
 local farmHeightIndex = 2
-local FARM_HEIGHT = FARM_HEIGHTS[farmHeightIndex]      -- высота зависания над мобом
-local CRUISE_HEIGHTS = {50, 90, 150}     -- варианты высоты перелёта (выбор в Misc)
+local FARM_HEIGHT = FARM_HEIGHTS[farmHeightIndex]
+local CRUISE_HEIGHTS = {50, 90, 150}
 local cruiseIndex = 1
-local CRUISE_HEIGHT = CRUISE_HEIGHTS[cruiseIndex]      -- на сколько выше всего летим при перелёте
-local FARM_APPROACH = 80     -- дальше этого расстояния сначала подлетаем
-local FAST_RANGE = 60        -- радиус, в котором fast attack бьёт мобов
-local MOB_LEVEL_SLACK = 5    -- насколько уровень моба может быть выше моего
+local CRUISE_HEIGHT = CRUISE_HEIGHTS[cruiseIndex]
+local FARM_APPROACH = 80
+local FAST_RANGE = 60
+local MOB_LEVEL_SLACK = 5
 local WEAPONS = {"Melee", "Sword", "Blox Fruit"}
-local BLUR_SIZE = 14         -- сила размытия фона за меню (0 = выкл)
-local BOSS_RANGE = 1500      -- босс считается "на острове", если ближе этого расстояния
-local BOSS_TIMEOUT = 150     -- сколько секунд максимум бить босса, потом возвращаемся к мобам
-local MATERIAL_DWELL = 300   -- сколько секунд фармить один материал, потом переходим к следующему выбранному
--- Боссы без квеста (бить без квеста). Пример: {"Saber Expert"}
+local BLUR_SIZE = 14
+local BOSS_RANGE = 1500
+local BOSS_TIMEOUT = 150
+local MATERIAL_DWELL = 300
+
 local EXTRA_BOSS_NAMES = {}
 
--- Ручной выбор квеста (если авто-выбор ошибается). Пример:
--- local FORCE_QUEST = {name = "ZombieQuest", idx = 2}
 local FORCE_QUEST = nil
--- =====================
 
--- ===== Палитра =====
 local ACCENT   = Color3.fromRGB(139, 92, 246)
 local ACCENT2  = Color3.fromRGB(236, 72, 153)
 local TEXT     = Color3.fromRGB(240, 240, 250)
@@ -42,7 +38,6 @@ local MUTED    = Color3.fromRGB(170, 172, 200)
 local RED      = Color3.fromRGB(220, 70, 90)
 local GOOD     = Color3.fromRGB(52, 199, 120)
 
--- ===== Выбор языка / Language select =====
 local LANG
 do
     local selGui = Instance.new("ScreenGui")
@@ -223,6 +218,35 @@ local I18N = {
         tp_cancel = "Отменить полёт",
         tp_flying = "Лечу на остров: %s",
         tp_arrived = "Прилетел на остров: %s",
+        sec_chests = "СУНДУКИ",
+        tg_chest_stop = "Стоп при Fist of Darkness или чаше",
+        chest_info = "Сундуков рядом: %d  |  Собрано: %d",
+        chest_going = "Иду к сундуку, рядом %d",
+        chest_none = "Сундуков не видно",
+        chest_rare = "Выпал %s! Сбор сундуков остановлен",
+        sec_swords = "МЕЧИ",
+        sec_styles = "СТИЛИ БОЯ",
+        sec_abilities = "СИЛЫ",
+        shop_buy = "Купить %s",
+        shop_info = "Магазин: %s",
+        shop_buying = "Покупаю: %s...",
+        shop_ok = "%s: куплено",
+        shop_msg = "%s: игра пишет: %s",
+        shop_reply = "%s: ответ %s",
+        shop_noreply = "%s: нет ответа, подойди к NPC и повтори",
+        sec_story = "КВЕСТЫ МОРЕЙ",
+        tg_story2 = "Авто квест 2 море Ice Admiral",
+        tg_story3 = "Авто квест 3 море Rip Indra",
+        story_info = "Квест: %s",
+        story_need_sea = "Этот квест делается в Sea %d",
+        story_need_level = "Нужен %d уровень",
+        story_talk = "Иду к NPC: %s",
+        story_npc_missing = "NPC не найден: %s",
+        story_wait_boss = "Жду босса: %s",
+        story_fight = "Бью босса: %s",
+        story_call = "Вызов %s: %s",
+        story_boss_fail = "Босс не найден: %s",
+        story_done = "Квест моря выполнен",
         sec_farm = "ФАРМ",
         tg_autofarm = "Автофарм",
         sec_weapon = "ОРУЖИЕ",
@@ -313,6 +337,35 @@ local I18N = {
         tp_cancel = "Cancel flight",
         tp_flying = "Flying to island: %s",
         tp_arrived = "Arrived at island: %s",
+        sec_chests = "CHESTS",
+        tg_chest_stop = "Stop on Fist of Darkness or Chalice",
+        chest_info = "Chests nearby: %d  |  Collected: %d",
+        chest_going = "Going to a chest, %d nearby",
+        chest_none = "No chests in sight",
+        chest_rare = "%s dropped! Chest farm stopped",
+        sec_swords = "SWORDS",
+        sec_styles = "FIGHTING STYLES",
+        sec_abilities = "ABILITIES",
+        shop_buy = "Buy %s",
+        shop_info = "Shop: %s",
+        shop_buying = "Buying: %s...",
+        shop_ok = "%s: bought",
+        shop_msg = "%s: game says: %s",
+        shop_reply = "%s: reply %s",
+        shop_noreply = "%s: no reply, stand next to the NPC and try again",
+        sec_story = "SEA QUESTS",
+        tg_story2 = "Auto Quest Sea 2 Ice Admiral",
+        tg_story3 = "Auto Quest Sea 3 Rip Indra",
+        story_info = "Quest: %s",
+        story_need_sea = "This quest is done in Sea %d",
+        story_need_level = "Level %d required",
+        story_talk = "Going to NPC: %s",
+        story_npc_missing = "NPC not found: %s",
+        story_wait_boss = "Waiting for boss: %s",
+        story_fight = "Fighting boss: %s",
+        story_call = "Call %s: %s",
+        story_boss_fail = "Boss not found: %s",
+        story_done = "Sea quest finished",
         sec_farm = "FARM",
         tg_autofarm = "Auto Farm",
         sec_weapon = "WEAPON",
@@ -337,7 +390,6 @@ local I18N = {
     },
 }
 
--- T("key") или T("key", ...) для строк с %s / %d
 local function T(key, ...)
     local pack = I18N[LANG] or I18N.ru
     local str = pack[key] or I18N.ru[key] or key
@@ -348,20 +400,18 @@ local function T(key, ...)
     return str
 end
 
-local alive = true           -- false после "Убить GUI": все циклы завершаются
+local alive = true
 local connections = {}
 local function track(c) table.insert(connections, c) return c end
 
 local weaponIndex = 1
-local farmMobName = nil  -- имя моба, которого бьёт fast attack во время фарма
-local farmMobSet = nil   -- набор имён мобов (Auto Materials): fast attack бьёт только их
+local farmMobName = nil
+local farmMobSet = nil
 
--- имя моба без суффикса вида " [Lv. 5]"
 local function baseName(n)
     return (n:gsub("%s*%[.-%]%s*$", ""))
 end
 
--- нормализованное имя для "мягкого" сравнения: "Snow Trooper" == "SnowTrooper2"
 local function normName(s)
     s = baseName(s):lower():gsub("[^%w]", "")
     return (s:gsub("%d+$", ""))
@@ -385,6 +435,9 @@ local state = {
     autoBoss = true,
     autoMaterials = false,
     autoRaid = false,
+    autoChest = false,
+    autoStory = false,
+    chestStop = true,
     splitStats = false,
     blur = true,
 }
@@ -392,9 +445,9 @@ local state = {
 local STAT_NAMES = {"Melee", "Defense", "Sword", "Gun", "Demon Fruit"}
 local STAT_LABELS = {"Melee", "Defense", "Sword", "Gun", "Fruit"}
 local statIndex = 1
-local splitSel = {}      -- выбранные статы в режиме "Разделение" (индексы), максимум 3
-local splitRot = 0       -- сдвиг для честной раздачи остатка
-local matSel = {}        -- выбранные материалы (id -> true)
+local splitSel = {}
+local splitRot = 0
+local matSel = {}
 local storeStatus = "-"
 local storeTried = setmetatable({}, {__mode = "k"})
 
@@ -433,13 +486,11 @@ local function getCommF()
     return remotes and remotes:FindFirstChild("CommF_")
 end
 
--- Анти-AFK
 track(player.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
 end))
 
--- ================= Фрукты: ESP =================
 local function getFruits()
     local fruits = {}
     for _, obj in ipairs(Workspace:GetChildren()) do
@@ -481,7 +532,6 @@ local function clearFruitESP()
     end
 end
 
--- ================= Игроки: ESP =================
 local function updatePlayerESP()
     local myRoot = getRoot()
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -543,8 +593,7 @@ local function clearPlayerESP()
     end
 end
 
--- ================= Полёт к фрукту =================
-local stopFarmPhysics, flyToPos -- определены ниже (общий полёт с набором высоты)
+local stopFarmPhysics, flyToPos
 
 local function stopFlying()
     flying = false
@@ -560,7 +609,7 @@ local function flyToNearestFruit()
         notify(T("cancelled"))
         return
     end
-    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid then
+    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory then
         notify(T("turn_off_farm"))
         return
     end
@@ -592,18 +641,16 @@ local function flyToNearestFruit()
         end)
         if flying then
             local r = getRoot()
-            if ok and r and nearest.Parent then r.CFrame = nearest.CFrame end -- касание = подбор
+            if ok and r and nearest.Parent then r.CFrame = nearest.CFrame end
             stopFlying()
             if ok then notify(T("arrived")) end
         end
     end)
 end
 
--- ================= Клик-цикл =================
--- Работает для Fast Attack, Автофарма и Factory (любое оружие, включая фрукт)
 task.spawn(function()
     while alive do
-        if state.fastAttack or state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid then
+        if state.fastAttack or state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoStory then
             VirtualUser:CaptureController()
             VirtualUser:Button1Down(Vector2.new(1280, 672))
             task.wait(0.05)
@@ -613,8 +660,6 @@ task.spawn(function()
     end
 end)
 
--- ================= Fast Attack через сеть =================
--- Зависит от версии игры: если ремоутов нет, остаётся только клик-цикл выше.
 local RegisterAttack, RegisterHit
 local netWarned = false
 
@@ -666,14 +711,13 @@ end
 
 task.spawn(function()
     while alive do
-        if state.fastAttack or state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid then
+        if state.fastAttack or state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoStory then
             pcall(netAttack)
         end
         task.wait(0.05)
     end
 end)
 
--- ================= Автофарм по квестам =================
 local farmNoclip
 local farmTween
 
@@ -727,7 +771,6 @@ function stopFarmPhysics()
     if hold then hold:Destroy() end
 end
 
--- Один прямой отрезок полёта. abort() == true прерывает.
 local function tweenTo(dest, abort)
     local root = getRoot()
     if not root then return false end
@@ -755,8 +798,6 @@ local function tweenTo(dest, abort)
     return true
 end
 
--- Полёт в точку. На длинных дистанциях: вверх -> над картой -> вниз к цели.
--- Возвращает true, если долетели.
 function flyToPos(dest, abort)
     local root = getRoot()
     if not root then return false end
@@ -766,7 +807,7 @@ function flyToPos(dest, abort)
     local flat = (Vector3.new(dest.X, 0, dest.Z) - Vector3.new(pos.X, 0, pos.Z)).Magnitude
 
     if flat > 120 then
-        local cruiseY = math.max(pos.Y, dest.Y) + CRUISE_HEIGHT -- считаем один раз
+        local cruiseY = math.max(pos.Y, dest.Y) + CRUISE_HEIGHT
         if not tweenTo(Vector3.new(pos.X, cruiseY, pos.Z), abort) then return false end
         if not tweenTo(Vector3.new(dest.X, cruiseY, dest.Z), abort) then return false end
     end
@@ -774,7 +815,6 @@ function flyToPos(dest, abort)
     return tweenTo(dest, abort)
 end
 
--- ===== Квесты =====
 local QuestData
 local function loadQuests()
     if QuestData then return QuestData end
@@ -785,7 +825,6 @@ local function loadQuests()
     return QuestData
 end
 
--- Споуны моба: точное имя -> "мягкое" имя -> позиции живых мобов
 local function getSpawnPositions(mob)
     local list = {}
     local origin = Workspace:FindFirstChild("_WorldOrigin")
@@ -823,7 +862,6 @@ local function getSpawnPositions(mob)
     return list
 end
 
--- Уровень моба из имени вида "Vampire [Lv. 975]"
 local function getMobLevel(mob)
     local hum = mob:FindFirstChildOfClass("Humanoid")
     local str = (hum and hum.DisplayName or "") .. " " .. mob.Name
@@ -935,7 +973,6 @@ local function questActive()
     return ok and vis == true
 end
 
--- Упоминается ли моб в тексте активного квеста (true/false, nil - не удалось прочитать)
 local function questMentionsMob(mob)
     local ok, qgui = pcall(function() return player.PlayerGui.Main.Quest end)
     if not ok or not qgui then return nil end
@@ -956,7 +993,6 @@ local function questMentionsMob(mob)
     return sawText and false or nil
 end
 
--- Гарантирует, что активен ИМЕННО нужный квест
 local function ensureQuest(q, abort)
     local comm = getCommF()
     if not comm then return false end
@@ -986,7 +1022,6 @@ local function ensureQuest(q, abort)
     return false
 end
 
--- Ближайший живой моб ИМЕННО из квеста
 local function getNearestQuestMob(mobName)
     local folder = Workspace:FindFirstChild("Enemies")
     local root = getRoot()
@@ -1004,7 +1039,6 @@ local function getNearestQuestMob(mobName)
     return best
 end
 
--- Висим над мобом, пока он жив и abort() не вернул true
 local function attackMob(mob, q, abort)
     local mroot = mob:FindFirstChild("HumanoidRootPart")
     local hum = mob:FindFirstChildOfClass("Humanoid")
@@ -1037,9 +1071,6 @@ local function attackMob(mob, q, abort)
     return hum.Health <= 0
 end
 
--- ===== Боссы =====
--- Босс = враг из Workspace.Enemies, у которого в списке квестов задача "убить 1".
--- Если уровень позволяет, берём его квест, бьём босса, затем возвращаемся к обычному квесту.
 local bossQuestCache
 local bossCooldown = {}
 
@@ -1068,7 +1099,6 @@ local function getBossQuests()
     return list
 end
 
--- Ближайший доступный босс на острове (и его квест, если он есть)
 local function findBoss()
     local folder = Workspace:FindFirstChild("Enemies")
     local root = getRoot()
@@ -1103,14 +1133,13 @@ local function findBoss()
     return best, bestBq
 end
 
--- Берём квест босса (если он есть) и бьём босса. Возвращает true, если босс убит.
 local function fightBoss(boss, bq, abort)
     local bossName = baseName(boss.Name)
     local hum = boss:FindFirstChildOfClass("Humanoid")
     if not hum then return false end
 
     notify(T("boss_found", bossName))
-    farmMobName = bossName -- fast attack бьёт только босса
+    farmMobName = bossName
 
     if bq.name then
         statusText = T("taking_quest", tostring(bq.name))
@@ -1201,7 +1230,6 @@ local function farmCycle()
             end
         end
 
-        -- босс на острове: берём его квест, бьём, потом обратно к обычному квесту
         if state.autoBoss and os.clock() - lastBossCheck > 2 then
             lastBossCheck = os.clock()
             local boss, bq = findBoss()
@@ -1248,7 +1276,7 @@ task.spawn(function()
                 if not ok and alive and state.autoFarm then task.wait(2) end
             end
         else
-            if not state.autoFactory and not state.autoMaterials and not state.autoRaid and not flying then
+            if not state.autoFactory and not state.autoMaterials and not state.autoRaid and not state.autoChest and not state.autoStory and not flying then
                 if not state.autoFarm and not state.autoStats and not state.autoGacha then
                     statusText = T("farm_off")
                 end
@@ -1262,11 +1290,6 @@ task.spawn(function()
     stopFarmPhysics()
 end)
 
--- ================= Auto Materials =================
--- Материалы, которые падают с обычных мобов (по данным вики). Босс/ивент/рейд-материалы
--- и ягоды с кустов сюда не входят. Исключены по твоей просьбе: Leviathan Heart,
--- Leviathan Scale, Volcanic Magnet, Dragon Egg.
--- mobs[море] = имена мобов в игре. Если какой-то моб назван иначе - поправь имя здесь.
 local MATERIALS = {
     { id = "angel_wings", name = "Angel Wings",
       mobs = { [1] = {"God's Guard", "Shanda", "Royal Squad", "Royal Soldier"} } },
@@ -1321,7 +1344,6 @@ local function matInSea(mat)
     return mat.mobs[sea] ~= nil
 end
 
--- подпись с морями, где материал фармится: "Sea 1/2/3"
 local function matSeaTag(mat)
     local seas = {}
     for sea in pairs(mat.mobs) do seas[#seas + 1] = sea end
@@ -1329,7 +1351,6 @@ local function matSeaTag(mat)
     return "Sea " .. table.concat(seas, "/")
 end
 
--- минимальный уровень мобa по списку квестов (nil, если моба нет в квестах)
 local mobReqCache
 local function getMobReq(name)
     local quests = loadQuests()
@@ -1353,7 +1374,6 @@ local function getMobReq(name)
     return mobReqCache[name]
 end
 
--- Выбранные материалы, которые реально можно фармить здесь и сейчас
 local function getMaterialTargets()
     local sea = currentSea()
     local lvl = getPlayerLevel()
@@ -1403,7 +1423,6 @@ local function getNearestMobOf(set)
     return best
 end
 
--- Фарм одного материала MATERIAL_DWELL секунд (или пока не выключат)
 local function farmMaterial(tgt, abort)
     local mobSet = {}
     for _, m in ipairs(tgt.mobs) do mobSet[m] = true end
@@ -1489,18 +1508,12 @@ task.spawn(function()
     end
 end)
 
--- ================= Auto Raid =================
--- Всё ниже написано по памяти об игре и в самой игре НЕ проверено:
---   * покупка/выбор чипа: CommF_:InvokeServer("RaidsNpc", "Select", <тип>)
---   * кнопка запуска: Sea 2 - Map.CircleIsland.RaidSummon, Sea 3 - Map["Boat Castle"].RaidSummon2
---   * острова рейда: _WorldOrigin.Locations["Island 1" .. "Island 5"]
--- Для запуска нужен fireclickdetector в твоём executor.
 local RAID_TYPES = {
     "Flame", "Ice", "Quake", "Light", "Dark", "String",
     "Magma", "Human: Buddha", "Sand", "Bird: Phoenix", "Dough",
 }
 local raidIdx = 1
-local RAID_RADIUS = 450   -- мобы рейда ищутся в таком радиусе от острова
+local RAID_RADIUS = 450
 
 local function raidIslands()
     local list = {}
@@ -1523,7 +1536,6 @@ local function raidIslands()
     return list
 end
 
--- Кнопка запуска рейда: возвращает часть Main и её ClickDetector
 local function raidStandButton()
     local map = Workspace:FindFirstChild("Map")
     if not map then return nil end
@@ -1545,8 +1557,6 @@ local function raidStandButton()
     return nil
 end
 
--- Летим к кнопке, выбираем чип, жмём кнопку, ждём острова рейда.
--- Возвращает: запустился ли рейд, и ключ сообщения при неудаче.
 local function startRaid(abort)
     local sea = currentSea()
     if sea ~= 2 and sea ~= 3 then return false, "raid_sea" end
@@ -1591,7 +1601,6 @@ local function nearestRaidMob(center)
     return best
 end
 
--- Идём по островам рейда по порядку 1..5, на каждом стягиваем и бьём всех мобов
 local function fightRaid(abort)
     local function active() return #raidIslands() > 0 end
 
@@ -1616,7 +1625,7 @@ local function fightRaid(abort)
                     }, abort)
                 else
                     statusText = T("raid_fight", isl.idx)
-                    if os.clock() - lastSeen > 4 then break end -- остров зачищен, дальше
+                    if os.clock() - lastSeen > 4 then break end
                     task.wait(0.3)
                 end
             end
@@ -1638,7 +1647,7 @@ task.spawn(function()
                 fightRaid(abort)
                 if not abort() and #raidIslands() == 0 then
                     notify(T("raid_done"))
-                    task.wait(10) -- время забрать награду
+                    task.wait(10)
                 end
             else
                 local started, why = startRaid(abort)
@@ -1654,24 +1663,17 @@ task.spawn(function()
     end
 end)
 
--- ================= Телепорт по островам =================
--- Список островов берётся из самой игры (_WorldOrigin.Locations), поэтому он всегда
--- соответствует текущему морю. Запасной источник - модели в Workspace.Map.
-local tpIslands = {}     -- { {name = ..., pos = Vector3}, ... }
-local tpSelected = nil   -- имя выбранного острова
+local tpIslands = {}
+local tpSelected = nil
 
--- Что убрать из списка (имена в нижнем регистре). Имена, оканчивающиеся на 3+ цифры
--- (вроде "Festive Snow500374"), тоже убираются как служебные.
 local TP_HIDE = { ["volcano cave"] = true }
 
--- Чистит список: прячет лишнее, а "Underwater City" ведёт к воронке (Whirlpool).
--- Отдельный пункт "Whirlpool" при этом удаляется.
 local function cleanIslandList(list)
     local out, uc, wp = {}, nil, nil
     for _, isl in ipairs(list) do
         local low = isl.name:lower()
         if TP_HIDE[low] or isl.name:match("%d%d%d+$") then
-            -- пропускаем
+
         elseif low == "underwater city" then
             uc = isl
         elseif low == "whirlpool" then
@@ -1742,7 +1744,7 @@ local function flyToIsland()
         notify(T("cancelled"))
         return
     end
-    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid then
+    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory then
         notify(T("turn_off_farm"))
         return
     end
@@ -1771,8 +1773,6 @@ local function flyToIsland()
     end)
 end
 
--- ================= Auto Factory Core (Sea 2) =================
--- Core ищется среди врагов (Workspace.Enemies.Core). Работает, когда Factory активна.
 local function getCore()
     local folder = Workspace:FindFirstChild("Enemies")
     local core = folder and folder:FindFirstChild("Core")
@@ -1806,10 +1806,6 @@ task.spawn(function()
     end
 end)
 
--- ================= Статы =================
--- Обычный режим: все очки в один выбранный стат.
--- Режим "Разделение": очки делятся поровну между выбранными статами (до 3),
--- остаток раздаётся по одному, каждый раз начиная с другого стата.
 task.spawn(function()
     while alive do
         if state.autoStats then
@@ -1852,13 +1848,10 @@ task.spawn(function()
     end
 end)
 
--- ================= Auto Store Fruit =================
--- Прячет фрукты из рюкзака в инвентарь (StoreFruit).
 local function fruitRemoteName(tool)
     local attr = tool:GetAttribute("OriginalName")
     if type(attr) == "string" and attr ~= "" then return attr end
 
-    -- запасной вариант: "Rocket Fruit" -> "Rocket-Rocket"
     local base = tool.Name:gsub("%s*Fruit%s*$", "")
     base = base:gsub("^%s+", "")
     return base .. "-" .. base
@@ -1902,13 +1895,10 @@ task.spawn(function()
     end
 end)
 
--- ================= Gacha (ролл фрукта у Zioles) =================
--- Правила игры: уровень 50+, цена = 25000 + 150*(уровень-1) Beli (скидка 20% с подпиской),
--- откат между роллами 2 часа. Вызов: CommF_:InvokeServer("Cousin", "Buy").
 local GACHA_COOLDOWN = 7200
-local gachaNext = nil        -- os.clock(), когда можно крутить снова (после успешного ролла)
-local gachaBackoff = 30      -- пауза между неудачными попытками (растёт до 300 сек)
-local gachaResume = 0        -- не пытаться раньше этого момента
+local gachaNext = nil
+local gachaBackoff = 30
+local gachaResume = 0
 
 local function getBeli()
     local ok, v = pcall(function() return player.Data.Beli.Value end)
@@ -1936,7 +1926,6 @@ local function describeReply(res)
     return type(res) .. ":" .. tostring(res)
 end
 
--- NPC гачи (Zioles): ищем в Workspace.NPCs по имени
 local function findGachaNpc()
     local folder = Workspace:FindFirstChild("NPCs")
     if not folder then return nil end
@@ -1955,8 +1944,6 @@ local function findGachaNpc()
     return nil
 end
 
--- Выполняет fn() и собирает новые тексты, появившиеся в интерфейсе игры
--- (там обычно пишут причину отказа, например про откат).
 local function captureMessages(fn)
     local msgs = {}
     local pg = player:FindFirstChild("PlayerGui")
@@ -1983,7 +1970,6 @@ local function captureMessages(fn)
     return ok, res, msgs
 end
 
--- Одна покупка. Возвращает: успех, ответ сервера, сообщения игры, была ли ошибка вызова
 local function buyOnce(comm, cost)
     local before = snapshotFruitTools()
     local beliBefore = getBeli()
@@ -1994,7 +1980,6 @@ local function buyOnce(comm, cost)
     if not ok then return false, nil, msgs, true end
     print("[VitaHub] gacha reply: " .. describeReply(res) .. (#msgs > 0 and (" | game: " .. table.concat(msgs, " / ")) or ""))
 
-    -- успех: ответ 1/true, новый фрукт в рюкзаке или списание Beli
     local function purchased()
         for tool in pairs(snapshotFruitTools()) do
             if not before[tool] then return true end
@@ -2017,7 +2002,6 @@ local function buyOnce(comm, cost)
     return success, res, msgs, false
 end
 
--- Одна попытка ролла. Возвращает, через сколько секунд пробовать снова.
 local function rollGacha()
     local lvl = getPlayerLevel()
     if lvl < 50 then
@@ -2044,10 +2028,9 @@ local function rollGacha()
         return 30
     end
 
-    -- ни ответа, ни сообщений: возможно, сервер требует стоять рядом с NPC
     if not success and res == nil and #msgs == 0 then
         local npc = findGachaNpc()
-        local busy = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or flying
+        local busy = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or flying
         local root = getRoot()
         if npc and root and not busy and (root.Position - npc.Position).Magnitude > 30 then
             gachaStatus = T("gacha_fly")
@@ -2072,7 +2055,6 @@ local function rollGacha()
         return GACHA_COOLDOWN
     end
 
-    -- не вышло: показываем, что ответили сервер/игра, и ждём с нарастающей паузой
     if #msgs > 0 then
         gachaStatus = T("gacha_msg", table.concat(msgs, " / "))
     elseif type(res) == "string" and res ~= "" then
@@ -2099,7 +2081,410 @@ task.spawn(function()
     end
 end)
 
--- ================= Следующий остров (по ближайшему квесту) =================
+local Chest = { found = 0, collected = 0 }
+
+do
+    local CollectionService = game:GetService("CollectionService")
+    local visited = setmetatable({}, { __mode = "k" })
+
+    local function chestPos(obj)
+        if obj:IsA("BasePart") then return obj.Position end
+        if obj:IsA("Model") then
+            local ok, p = pcall(function() return obj:GetPivot().Position end)
+            if ok then return p end
+        end
+        return nil
+    end
+
+    local function getChests()
+        local list, seen = {}, {}
+
+        local ok, tagged = pcall(function() return CollectionService:GetTagged("_ChestTagged") end)
+        if ok then
+            for _, c in ipairs(tagged) do
+                if not seen[c] and c:IsDescendantOf(Workspace) then
+                    local pos = chestPos(c)
+                    if pos then
+                        seen[c] = true
+                        list[#list + 1] = { obj = c, pos = pos }
+                    end
+                end
+            end
+        end
+
+        if #list == 0 then
+            for _, c in ipairs(Workspace:GetChildren()) do
+                if (c:IsA("BasePart") or c:IsA("Model")) and c.Name:match("^Chest%d") and not seen[c] then
+                    local pos = chestPos(c)
+                    if pos then
+                        seen[c] = true
+                        list[#list + 1] = { obj = c, pos = pos }
+                    end
+                end
+            end
+        end
+        return list
+    end
+
+    local function rareCount()
+        local n, name = 0, nil
+        for _, container in ipairs({ player.Backpack, player.Character }) do
+            if container then
+                for _, tool in ipairs(container:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        local low = tool.Name:lower():gsub("[^%w]", "")
+                        if low:find("fistofdarkness", 1, true)
+                            or low:find("godschalice", 1, true)
+                            or low:find("godchalice", 1, true) then
+                            n = n + 1
+                            name = tool.Name
+                        end
+                    end
+                end
+            end
+        end
+        return n, name
+    end
+
+    task.spawn(function()
+        local wasOn, baseline = false, 0
+        while alive do
+            if state.autoChest then
+                local hum = getHumanoid()
+                local root = getRoot()
+
+                if not wasOn then
+                    wasOn = true
+                    baseline = rareCount()
+                    Chest.collected = 0
+                end
+
+                if not root or not hum or hum.Health <= 0 then
+                    statusText = T("waiting_respawn")
+                    task.wait(1)
+                else
+                    local count, rareName = rareCount()
+                    if state.chestStop and count > baseline then
+                        state.autoChest = false
+                        stopFarmPhysics()
+                        notify(T("chest_rare", rareName or "Fist of Darkness"))
+                        refreshGui()
+                    else
+                        local list = getChests()
+                        Chest.found = #list
+
+                        local best, bestDist
+                        for _, c in ipairs(list) do
+                            local t = visited[c.obj]
+                            if not t or os.clock() - t > 20 then
+                                local d = (c.pos - root.Position).Magnitude
+                                if not bestDist or d < bestDist then best, bestDist = c, d end
+                            end
+                        end
+
+                        if best then
+                            statusText = T("chest_going", #list)
+                            local abort = function() return not (alive and state.autoChest) end
+                            if flyToPos(best.pos + Vector3.new(0, 3, 0), abort) then
+                                local r = getRoot()
+                                if r then r.CFrame = CFrame.new(best.pos) end
+                                task.wait(0.5)
+                                visited[best.obj] = os.clock()
+                                if not best.obj.Parent or not best.obj:IsDescendantOf(Workspace) then
+                                    Chest.collected = Chest.collected + 1
+                                end
+                            end
+                        else
+                            statusText = T("chest_none")
+                            task.wait(3)
+                        end
+                    end
+                end
+            else
+                wasOn = false
+                task.wait(0.5)
+            end
+            task.wait()
+        end
+    end)
+end
+
+local Shop = { status = "-" }
+
+do
+    Shop.swords = {
+        { name = "Cutlass",          args = { "BuyItem", "Cutlass" } },
+        { name = "Katana",           args = { "BuyItem", "Katana" } },
+        { name = "Iron Mace",        args = { "BuyItem", "Iron Mace" } },
+        { name = "Dual Katana",      args = { "BuyItem", "Duel Katana" } },
+        { name = "Triple Katana",    args = { "BuyItem", "Triple Katana" } },
+        { name = "Pipe",             args = { "BuyItem", "Pipe" } },
+        { name = "Dual-Headed Blade", args = { "BuyItem", "Dual-Headed Blade" } },
+        { name = "Bisento",          args = { "BuyItem", "Bisento" } },
+        { name = "Soul Cane",        args = { "BuyItem", "Soul Cane" } },
+    }
+
+    Shop.styles = {
+        { name = "Black Leg",        args = { "BuyBlackLeg" } },
+        { name = "Electro",          args = { "BuyElectro" } },
+        { name = "Fishman Karate",   args = { "BuyFishmanKarate" } },
+        { name = "Dragon Claw",      args = { "BlackbeardReward", "DragonClaw", "2" } },
+        { name = "Superhuman",       args = { "BuySuperhuman" } },
+        { name = "Death Step",       args = { "BuyDeathStep" } },
+        { name = "Sharkman Karate",  args = { "BuySharkmanKarate" } },
+        { name = "Electric Claw",    args = { "BuyElectricClaw" } },
+        { name = "Dragon Talon",     args = { "BuyDragonTalon" } },
+        { name = "Godhuman",         args = { "BuyGodhuman" } },
+        { name = "Sanguine Art",     args = { "BuySanguineArt" } },
+    }
+
+    Shop.abilities = {
+        { name = "Buso Haki",        args = { "BuyHaki", "Buso" } },
+        { name = "Geppo",            args = { "BuyHaki", "Geppo" } },
+        { name = "Soru",             args = { "BuyHaki", "Soru" } },
+        { name = "Ken Haki",         args = { "KenTalk", "Buy" } },
+    }
+
+    function Shop.buy(item)
+        local comm = getCommF()
+        if not comm then
+            Shop.status = T("commf_missing")
+            return
+        end
+
+        Shop.status = T("shop_buying", item.name)
+        task.spawn(function()
+            local ok, res, msgs = captureMessages(function()
+                return comm:InvokeServer(table.unpack(item.args))
+            end)
+            print("[VitaHub] shop " .. item.name .. ": " .. describeReply(res))
+
+            if not ok then
+                Shop.status = item.name .. ": " .. T("call_error")
+            elseif #msgs > 0 then
+                Shop.status = T("shop_msg", item.name, table.concat(msgs, " / "))
+            elseif res == 1 or res == true then
+                Shop.status = T("shop_ok", item.name)
+            elseif type(res) == "string" and res ~= "" then
+                Shop.status = item.name .. ": " .. res
+            elseif res == nil then
+                Shop.status = T("shop_noreply", item.name)
+            else
+                Shop.status = T("shop_reply", item.name, describeReply(res))
+            end
+        end)
+    end
+end
+
+local Story = { status = "-", mode = 2 }
+
+do
+    local function npcPart(patterns)
+        local folder = Workspace:FindFirstChild("NPCs")
+        if not folder then return nil end
+        for _, n in ipairs(folder:GetChildren()) do
+            local low = n.Name:lower()
+            for _, pat in ipairs(patterns) do
+                if low:find(pat, 1, true) then
+                    local part
+                    if n:IsA("Model") then
+                        part = n.PrimaryPart or n:FindFirstChild("HumanoidRootPart")
+                    elseif n:IsA("BasePart") then
+                        part = n
+                    end
+                    if part then return part end
+                end
+            end
+        end
+        return nil
+    end
+
+    local function goNpc(patterns, label, abort)
+        local part = npcPart(patterns)
+        if not part then
+            Story.status = T("story_npc_missing", label)
+            return false
+        end
+        Story.status = T("story_talk", label)
+        return flyToPos(part.Position + Vector3.new(0, 4, 0), abort)
+    end
+
+    local function invoke(...)
+        local comm = getCommF()
+        if not comm then return nil end
+        local args = { ... }
+        local ok, res, msgs = captureMessages(function()
+            return comm:InvokeServer(table.unpack(args))
+        end)
+        print("[VitaHub] story " .. tostring(args[1]) .. " " .. tostring(args[2] or "") .. ": " .. describeReply(res))
+        local shown = #msgs > 0 and table.concat(msgs, " / ") or describeReply(res)
+        Story.status = T("story_call", tostring(args[1]), shown)
+        return res
+    end
+
+    local function findBossModel(patterns)
+        local folder = Workspace:FindFirstChild("Enemies")
+        if not folder then return nil end
+        for _, e in ipairs(folder:GetChildren()) do
+            local low = e.Name:lower()
+            for _, pat in ipairs(patterns) do
+                if low:find(pat, 1, true) then
+                    local hum = e:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 and e:FindFirstChild("HumanoidRootPart") then
+                        return e
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+    local function fightBoss(patterns, label, spawnNames, abort, stopAtHalf)
+        local waited = 0
+        while not abort() do
+            local boss = findBossModel(patterns)
+            if boss then
+                waited = 0
+                local hum = boss:FindFirstChildOfClass("Humanoid")
+
+                local function halfDone()
+                    return stopAtHalf and hum.Health <= hum.MaxHealth * 0.5
+                end
+
+                if halfDone() then return true end
+                equipWeapon()
+
+                local function stopFn()
+                    return abort() or not boss.Parent or hum.Health <= 0 or halfDone()
+                end
+
+                attackMob(boss, {
+                    mob = baseName(boss.Name), name = label, count = 1,
+                    status = T("story_fight", label),
+                }, stopFn)
+
+                if hum.Health <= 0 or halfDone() then return true end
+            else
+                Story.status = T("story_wait_boss", label)
+                if waited % 15 == 0 then
+                    for _, nm in ipairs(spawnNames) do
+                        local sp = getSpawnPositions(nm)
+                        if #sp > 0 then
+                            flyToPos(sp[1] + Vector3.new(0, FARM_HEIGHT, 0), abort)
+                            break
+                        end
+                    end
+                end
+                task.wait(1)
+                waited = waited + 1
+                if waited > 120 then return false end
+            end
+        end
+        return false
+    end
+
+    local function runSea2(abort)
+        local sea = currentSea()
+        if sea and sea ~= 1 then
+            Story.status = T("story_need_sea", 1)
+            return false, true
+        end
+        if getPlayerLevel() < 700 then
+            Story.status = T("story_need_level", 700)
+            return false, true
+        end
+
+        goNpc({ "detective" }, "Military Detective", abort)
+        if abort() then return false end
+        invoke("DressrosaQuestProgress", "Detective")
+
+        if not fightBoss({ "ice admiral" }, "Ice Admiral", { "Ice Admiral" }, abort, false) then
+            if not abort() then Story.status = T("story_boss_fail", "Ice Admiral") end
+            return false, true
+        end
+
+        goNpc({ "detective" }, "Military Detective", abort)
+        if abort() then return false end
+        invoke("DressrosaQuestProgress", "Detective")
+
+        goNpc({ "captain" }, "Experienced Captain", abort)
+        if abort() then return false end
+        invoke("TravelDressrosa")
+        return true
+    end
+
+    local function runSea3(abort)
+        local sea = currentSea()
+        if sea and sea ~= 2 then
+            Story.status = T("story_need_sea", 2)
+            return false, true
+        end
+        if getPlayerLevel() < 1500 then
+            Story.status = T("story_need_level", 1500)
+            return false, true
+        end
+
+        if findBossModel({ "don swan" }) then
+            fightBoss({ "don swan" }, "Don Swan", { "Don Swan" }, abort, false)
+            if abort() then return false end
+        end
+
+        goNpc({ "red head", "redhead" }, "King Red Head", abort)
+        if abort() then return false end
+        invoke("ZQuestProgress", "Check")
+        invoke("ZQuestProgress", "Begin")
+
+        if not fightBoss({ "rip_indra", "rip indra" }, "Rip Indra", { "rip_indra True Form", "rip_indra" }, abort, true) then
+            if not abort() then Story.status = T("story_boss_fail", "Rip Indra") end
+            return false, true
+        end
+
+        goNpc({ "captain" }, "Mr. Captain", abort)
+        if abort() then return false end
+        invoke("TravelZou")
+        return true
+    end
+
+    task.spawn(function()
+        while alive do
+            if state.autoStory then
+                local abort = function() return not (alive and state.autoStory) end
+                local hum = getHumanoid()
+
+                if not getRoot() or not hum or hum.Health <= 0 then
+                    Story.status = T("waiting_respawn")
+                    task.wait(1)
+                else
+                    local ok, fatal
+                    if Story.mode == 2 then
+                        ok, fatal = runSea2(abort)
+                    else
+                        ok, fatal = runSea3(abort)
+                    end
+
+                    if not abort() then
+                        if ok then
+                            notify(T("story_done"))
+                        elseif fatal then
+                            notify(Story.status)
+                        end
+                        if ok or fatal then
+                            state.autoStory = false
+                            stopFarmPhysics()
+                            refreshGui()
+                        else
+                            task.wait(5)
+                        end
+                    end
+                end
+            else
+                task.wait(0.5)
+            end
+            task.wait()
+        end
+    end)
+end
+
 local function seaForLevel(l)
     if l < 700 then return "Sea 1" end
     if l < 1500 then return "Sea 2" end
@@ -2134,7 +2519,6 @@ local function nextIslandText(lvl)
     return nextCacheText
 end
 
--- ================= Действия =================
 local function toggleFast()
     state.fastAttack = not state.fastAttack
     refreshGui()
@@ -2159,6 +2543,8 @@ local function toggleFarm()
         warnedSkips = {}
         state.autoMaterials = false
         state.autoRaid = false
+        state.autoChest = false
+        state.autoStory = false
         farmMobSet = nil
     end
     refreshGui()
@@ -2170,6 +2556,8 @@ local function toggleFactory()
     if state.autoFactory then
         state.autoMaterials = false
         state.autoRaid = false
+        state.autoChest = false
+        state.autoStory = false
     end
     if not state.autoFactory then
         if farmMobName == "Core" then farmMobName = nil end
@@ -2186,7 +2574,7 @@ end
 local function toggleGacha()
     state.autoGacha = not state.autoGacha
     if state.autoGacha and not (gachaNext and os.clock() < gachaNext) then
-        gachaResume = 0 -- при включении пробуем сразу
+        gachaResume = 0
         gachaBackoff = 30
     end
     refreshGui()
@@ -2209,6 +2597,8 @@ local function toggleRaid()
         state.autoFarm = false
         state.autoFactory = false
         state.autoMaterials = false
+        state.autoChest = false
+        state.autoStory = false
         farmMobSet = nil
     else
         stopFarmPhysics()
@@ -2216,13 +2606,57 @@ local function toggleRaid()
     refreshGui()
 end
 
+local function toggleChest()
+    if flying then stopFlying() end
+    state.autoChest = not state.autoChest
+    if state.autoChest then
+        state.autoFarm = false
+        state.autoFactory = false
+        state.autoMaterials = false
+        state.autoRaid = false
+        state.autoStory = false
+        farmMobSet = nil
+    else
+        stopFarmPhysics()
+    end
+    refreshGui()
+end
+
+local function toggleChestStop()
+    state.chestStop = not state.chestStop
+    refreshGui()
+end
+
+local function toggleStory(mode)
+    if flying then stopFlying() end
+    if state.autoStory and Story.mode == mode then
+        state.autoStory = false
+        stopFarmPhysics()
+    else
+        Story.mode = mode
+        state.autoStory = true
+        state.autoFarm = false
+        state.autoFactory = false
+        state.autoMaterials = false
+        state.autoRaid = false
+        state.autoChest = false
+        farmMobSet = nil
+    end
+    refreshGui()
+end
+
+local function toggleSea2() toggleStory(2) end
+local function toggleSea3() toggleStory(3) end
+
 local function toggleMaterials()
     if flying then stopFlying() end
     state.autoMaterials = not state.autoMaterials
     if state.autoMaterials then
-        state.autoFarm = false      -- одновременно с автофармом/Factory/рейдом нельзя
+        state.autoFarm = false
         state.autoFactory = false
         state.autoRaid = false
+        state.autoChest = false
+        state.autoStory = false
     else
         farmMobSet = nil
         stopFarmPhysics()
@@ -2295,7 +2729,7 @@ local function setFlySpeed(i)
 end
 
 local function buildGui()
--- ================= GUI: Liquid Glass =================
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "VitaHubGui"
 gui.ResetOnSpawn = false
@@ -2318,7 +2752,6 @@ local function brandGradient(obj)
     return g
 end
 
--- "стеклянный" элемент: белая полупрозрачная заливка + тонкая светлая обводка
 local function glass(obj, transp, strokeT)
     obj.BackgroundColor3 = Color3.new(1, 1, 1)
     obj.BackgroundTransparency = transp or 0.9
@@ -2350,7 +2783,6 @@ mainGrad.Color = ColorSequence.new(Color3.fromRGB(76, 64, 148), Color3.fromRGB(1
 mainGrad.Rotation = 55
 mainGrad.Parent = main
 
--- светящаяся обводка: ярче по углам, слабее посередине
 local mainStroke = Instance.new("UIStroke")
 mainStroke.Color = Color3.new(1, 1, 1)
 mainStroke.Thickness = 1.6
@@ -2366,7 +2798,6 @@ strokeGrad.Transparency = NumberSequence.new({
 })
 strokeGrad.Parent = mainStroke
 
--- блик сверху (имитация отражения на стекле)
 local sheen = Instance.new("Frame")
 sheen.Name = "Sheen"
 sheen.Size = UDim2.new(1, 0, 0.42, 0)
@@ -2384,7 +2815,6 @@ sheenGrad.Transparency = NumberSequence.new({
 })
 sheenGrad.Parent = sheen
 
--- Размытие мира за меню (интерфейс остаётся чётким)
 local blur = Instance.new("BlurEffect")
 blur.Name = "VH_Blur"
 blur.Size = 0
@@ -2403,7 +2833,6 @@ local function toggleBlur()
     refreshGui()
 end
 
--- Универсальное перетаскивание. Сдвиг меньше 6px считается кликом.
 local function makeDraggable(handle, target, onClick)
     local dragging, moved = false, false
     local dragStart, startPos
@@ -2437,7 +2866,6 @@ local function makeDraggable(handle, target, onClick)
     end))
 end
 
--- ===== Шапка =====
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 56)
 header.BackgroundTransparency = 1
@@ -2485,7 +2913,6 @@ local function windowButton(text, x, tint, callback)
     return b
 end
 
--- ===== Плашки: уровень и следующий остров =====
 local function infoPill(x, w)
     local pill = Instance.new("Frame")
     pill.Position = UDim2.new(0, x, 0, 58)
@@ -2511,7 +2938,6 @@ end
 local lvlLabel = infoPill(16, 170)
 local nextLabel = infoPill(194, W - 194 - 16)
 
--- ===== Боковая панель вкладок =====
 local sidebar = Instance.new("Frame")
 sidebar.Position = UDim2.new(0, 14, 0, 98)
 sidebar.Size = UDim2.new(0, 128, 0, H - 98 - 14)
@@ -2525,7 +2951,7 @@ local function nextOrder(p)
     return orders[p]
 end
 
-local tabNames = {"Combat", "Visuals", "Auto", "Teleport", "Misc"}
+local tabNames = {"Combat", "Visuals", "Auto", "Teleport", "Shop", "Misc"}
 local pages = {}
 local tabButtons = {}
 local currentTab = "Combat"
@@ -2556,7 +2982,6 @@ hint.TextSize = 11
 hint.TextXAlignment = Enum.TextXAlignment.Left
 hint.Parent = sidebar
 
--- ===== Страницы =====
 local CONTENT_X, CONTENT_Y = 152, 98
 local CONTENT_W = W - CONTENT_X - 14
 local CONTENT_H = H - CONTENT_Y - 14 - 34
@@ -2593,6 +3018,7 @@ local combatPage = makePage("Combat")
 local visualsPage = makePage("Visuals")
 local autoPage = makePage("Auto")
 local tpPage = makePage("Teleport")
+local shopPage = makePage("Shop")
 local miscPage = makePage("Misc")
 
 local function setTab(name)
@@ -2613,7 +3039,6 @@ table.insert(updaters, function()
     end
 end)
 
--- ===== Элементы интерфейса =====
 local function sectionLabel(parent, text)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 16)
@@ -2752,7 +3177,6 @@ local function makeInfo(parent)
     return l
 end
 
--- ===== Вкладка Combat =====
 sectionLabel(combatPage, T("sec_farm"))
 makeToggle(combatPage, T("tg_autofarm"), "F4", function() return state.autoFarm end, toggleFarm)
 makeToggle(combatPage, "Fast Attack", "F6", function() return state.fastAttack end, toggleFast)
@@ -2762,12 +3186,15 @@ makeSegment(combatPage, {"Melee", "Sword", "Fruit"}, function() return weaponInd
 sectionLabel(combatPage, T("sec_farm_height"))
 makeSegment(combatPage, {"20", "30", "45", "60"}, function() return farmHeightIndex end, setFarmHeight)
 
--- ===== Вкладка Visuals =====
 sectionLabel(visualsPage, "ESP")
 makeToggle(visualsPage, "ESP Fruits", "F2", function() return state.espFruits end, toggleFruitESP)
 makeToggle(visualsPage, "ESP Players", "", function() return state.espPlayers end, togglePlayerESP)
 
--- ===== Вкладка Auto =====
+sectionLabel(autoPage, T("sec_story"))
+makeToggle(autoPage, T("tg_story2"), "", function() return state.autoStory and Story.mode == 2 end, toggleSea2)
+makeToggle(autoPage, T("tg_story3"), "", function() return state.autoStory and Story.mode == 3 end, toggleSea3)
+local storyInfo = makeInfo(autoPage)
+
 sectionLabel(autoPage, T("sec_raid"))
 makeToggle(autoPage, "Auto Raid", "", function() return state.autoRaid end, toggleRaid)
 sectionLabel(autoPage, T("sec_raid_type"))
@@ -2796,7 +3223,6 @@ for _, mat in ipairs(MATERIALS) do
     end
 end
 
--- ===== Вкладка Teleport =====
 sectionLabel(tpPage, T("sec_tp"))
 local tpInfo = makeInfo(tpPage)
 makeButton(tpPage,
@@ -2868,16 +3294,34 @@ end)
 
 rebuildIslandList()
 task.delay(4, function()
-    if alive then rebuildIslandList() end -- карта могла ещё догружаться
+    if alive then rebuildIslandList() end
 end)
 
--- ===== Вкладка Misc =====
+local shopInfo = makeInfo(shopPage)
+local function shopSection(title, items)
+    sectionLabel(shopPage, title)
+    for _, item in ipairs(items) do
+        makeButton(shopPage,
+            function() return T("shop_buy", item.name) end,
+            function() return false end,
+            function() Shop.buy(item) end)
+    end
+end
+shopSection(T("sec_swords"), Shop.swords)
+shopSection(T("sec_styles"), Shop.styles)
+shopSection(T("sec_abilities"), Shop.abilities)
+
 sectionLabel(miscPage, T("sec_auto"))
 makeToggle(miscPage, "Auto Factory Core", "", function() return state.autoFactory end, toggleFactory)
 makeToggle(miscPage, T("tg_gacha"), "", function() return state.autoGacha end, toggleGacha)
 local gachaInfo = makeInfo(miscPage)
 makeToggle(miscPage, "Auto Store Fruit", "", function() return state.autoStore end, toggleStore)
 local storeInfo = makeInfo(miscPage)
+
+sectionLabel(miscPage, T("sec_chests"))
+makeToggle(miscPage, "Auto Chests", "", function() return state.autoChest end, toggleChest)
+makeToggle(miscPage, T("tg_chest_stop"), "", function() return state.chestStop end, toggleChestStop)
+local chestInfo = makeInfo(miscPage)
 
 sectionLabel(miscPage, T("sec_stats"))
 makeToggle(miscPage, T("tg_split"), "", function() return state.splitStats end, toggleSplit)
@@ -2900,7 +3344,6 @@ sectionLabel(miscPage, T("sec_misc"))
 makeToggle(miscPage, T("tg_flyfruit"), "F3", function() return flying end, flyToNearestFruit)
 makeToggle(miscPage, T("tg_blur"), "", function() return state.blur end, toggleBlur)
 
--- ===== Строка статуса =====
 local statusRow = Instance.new("Frame")
 statusRow.Position = UDim2.new(0, CONTENT_X, 1, -14 - 26)
 statusRow.Size = UDim2.new(0, CONTENT_W, 0, 26)
@@ -2933,7 +3376,6 @@ refreshGui = function()
     dot.BackgroundColor3 = (state.autoFarm or state.autoFactory) and GOOD or MUTED
 end
 
--- ===== Кружок VH (когда меню скрыто) =====
 local circle = Instance.new("TextButton")
 circle.Size = UDim2.new(0, 52, 0, 52)
 circle.Position = main.Position
@@ -2978,6 +3420,8 @@ local function killAll()
     state.autoStore = false
     state.autoMaterials = false
     state.autoRaid = false
+    state.autoChest = false
+    state.autoStory = false
     stopFlying()
     stopFarmPhysics()
     clearFruitESP()
@@ -2991,7 +3435,6 @@ end
 windowButton("-", -76, nil, function() setGuiVisible(false) end)
 windowButton("X", -40, RED, killAll)
 
--- ===== Фоновые обновления интерфейса =====
 task.spawn(function()
     while alive do
         local lvl = getPlayerLevel()
@@ -3007,6 +3450,9 @@ task.spawn(function()
         end
         statsInfo.Text = T("stats_info", getPoints(), table.concat(names, " + "))
         storeInfo.Text = T("storage_info") .. storeStatus
+        chestInfo.Text = T("chest_info", Chest.found, Chest.collected)
+        storyInfo.Text = T("story_info", Story.status)
+        shopInfo.Text = T("shop_info", Shop.status)
         local selCount = 0
         for _ in pairs(matSel) do selCount = selCount + 1 end
         local sea = currentSea()
@@ -3028,7 +3474,6 @@ task.spawn(function()
     end
 end)
 
--- ESP-циклы
 task.spawn(function()
     while alive do
         if state.espFruits then updateFruitESP() end
@@ -3043,7 +3488,6 @@ task.spawn(function()
     end
 end)
 
--- ================= Горячие клавиши =================
 track(UIS.InputBegan:Connect(function(input, processed)
     if processed then return end
     local k = input.KeyCode
