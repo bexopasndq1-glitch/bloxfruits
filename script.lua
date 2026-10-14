@@ -26,6 +26,7 @@ local BLUR_SIZE = 14
 local BOSS_RANGE = 1500
 local BOSS_TIMEOUT = 150
 local MATERIAL_DWELL = 300
+local FRUIT_FARM_HEIGHT = 10
 
 local EXTRA_BOSS_NAMES = {}
 
@@ -486,6 +487,41 @@ local function getCommF()
     return remotes and remotes:FindFirstChild("CommF_")
 end
 
+local function getHeldTool()
+    local char = player.Character
+    return char and char:FindFirstChildOfClass("Tool")
+end
+
+local function currentFarmHeight()
+    local tool = getHeldTool()
+    if WEAPONS[weaponIndex] == "Blox Fruit" or (tool and tool.ToolTip == "Blox Fruit") then
+        return FRUIT_FARM_HEIGHT
+    end
+    return FARM_HEIGHT
+end
+
+local fruitLogged = {}
+
+local function fruitAttack(tool, targetPos)
+    local root = getRoot()
+    if not root then return end
+
+    local dir = targetPos and (targetPos - root.Position) or root.CFrame.LookVector
+    if dir.Magnitude < 0.01 then dir = Vector3.new(0, -1, 0) end
+    dir = dir.Unit
+
+    local remote = tool:FindFirstChild("LeftClickRemote")
+    if remote then
+        pcall(function() remote:FireServer(dir, 1) end)
+    end
+    pcall(function() tool:Activate() end)
+
+    if not fruitLogged[tool.Name] then
+        fruitLogged[tool.Name] = true
+        print("[VitaHub] fruit " .. tool.Name .. ", LeftClickRemote: " .. tostring(remote ~= nil))
+    end
+end
+
 track(player.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
@@ -678,17 +714,8 @@ local function netAttack()
     local folder = Workspace:FindFirstChild("Enemies")
     if not root or not folder then return end
 
-    findNet()
-    if not (RegisterAttack and RegisterHit) then
-        if not netWarned then
-            netWarned = true
-            notify(T("net_missing"))
-        end
-        return
-    end
-
     local onlyMob = (state.autoFarm or state.autoFactory) and farmMobName or nil
-    local range = math.max(FAST_RANGE, FARM_HEIGHT + 30)
+    local range = math.max(FAST_RANGE, currentFarmHeight() + 30)
     local onlySet = state.autoMaterials and farmMobSet or nil
 
     local list = {}
@@ -703,6 +730,20 @@ local function netAttack()
         end
     end
     if #list == 0 then return end
+
+    local tool = getHeldTool()
+    if tool and tool.ToolTip == "Blox Fruit" then
+        fruitAttack(tool, list[1][2].Position)
+    end
+
+    findNet()
+    if not (RegisterAttack and RegisterHit) then
+        if not netWarned then
+            netWarned = true
+            notify(T("net_missing"))
+        end
+        return
+    end
 
     local first = list[1][1]:FindFirstChild("Head") or list[1][2]
     RegisterAttack:FireServer(0.1)
@@ -1049,7 +1090,7 @@ local function attackMob(mob, q, abort)
 
     local r = getRoot()
     if r and (mroot.Position - r.Position).Magnitude > FARM_APPROACH then
-        if not flyToPos(mroot.Position + Vector3.new(0, FARM_HEIGHT, 0), abort) then return end
+        if not flyToPos(mroot.Position + Vector3.new(0, currentFarmHeight(), 0), abort) then return end
     end
     startFarmPhysics()
 
@@ -1057,7 +1098,7 @@ local function attackMob(mob, q, abort)
     conn = RunService.Heartbeat:Connect(function()
         local root = getRoot()
         if alive and not abort() and root and mroot.Parent and hum.Health > 0 then
-            local pos = mroot.Position + Vector3.new(0, FARM_HEIGHT, 0)
+            local pos = mroot.Position + Vector3.new(0, currentFarmHeight(), 0)
             root.CFrame = CFrame.new(pos, mroot.Position)
         else
             conn:Disconnect()
