@@ -6,6 +6,9 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+local Debris = game:GetService("Debris")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 
@@ -27,6 +30,13 @@ local BOSS_RANGE = 1500
 local BOSS_TIMEOUT = 150
 local MATERIAL_DWELL = 300
 local FRUIT_FARM_HEIGHT = 10
+local OBS_DISTANCE = 7
+local OBS_LOW_HP = 0.35
+local OBS_SAFE_HP = 0.8
+local OBS_USE_KEY = false
+local SOUND_CLICK = "rbxassetid://6895079853"
+local SOUND_NOTIFY = "rbxasset://sounds/electronicpingshort.wav"
+local SOUND_VOLUME = 0.6
 
 local EXTRA_BOSS_NAMES = {}
 
@@ -269,6 +279,13 @@ local I18N = {
         storage_info = "Хранилище: ",
         gacha_info = "Ответ сервера: ",
         loaded = "VitaHub v1.0 загружен. RightShift - скрыть меню",
+        sec_obs = "OBSERVATION",
+        tg_obs = "Авто-фарм Observation",
+        obs_info = "Observation: %s",
+        obs_active = "Уворачиваюсь, мобов рядом: %d",
+        obs_lowhp = "Мало HP, отхожу и жду",
+        obs_no_mobs = "Нет подходящих мобов, ищу",
+        tg_sounds = "Звуки",
     },
     en = {
         status_wait = "Idle",
@@ -388,6 +405,13 @@ local I18N = {
         storage_info = "Storage: ",
         gacha_info = "Server reply: ",
         loaded = "VitaHub v1.0 loaded. RightShift - hide menu",
+        sec_obs = "OBSERVATION",
+        tg_obs = "Auto Farm Observation",
+        obs_info = "Observation: %s",
+        obs_active = "Dodging, mobs nearby: %d",
+        obs_lowhp = "Low HP, backing off and waiting",
+        obs_no_mobs = "No suitable mobs, searching",
+        tg_sounds = "Sounds",
     },
 }
 
@@ -438,6 +462,8 @@ local state = {
     autoRaid = false,
     autoChest = false,
     autoStory = false,
+    autoObs = false,
+    sounds = true,
     chestStop = true,
     splitStats = false,
     blur = true,
@@ -454,7 +480,21 @@ local storeTried = setmetatable({}, {__mode = "k"})
 
 local refreshGui = function() end
 
+local function playSound(id, pitch, volume)
+    if not state.sounds then return end
+    pcall(function()
+        local snd = Instance.new("Sound")
+        snd.SoundId = id
+        snd.Volume = volume or SOUND_VOLUME
+        snd.PlaybackSpeed = pitch or 1
+        snd.Parent = SoundService
+        snd:Play()
+        Debris:AddItem(snd, 4)
+    end)
+end
+
 local function notify(text)
+    playSound(SOUND_NOTIFY, 1, 0.5)
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "VitaHub", Text = text, Duration = 3,
@@ -645,7 +685,7 @@ local function flyToNearestFruit()
         notify(T("cancelled"))
         return
     end
-    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory then
+    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoObs then
         notify(T("turn_off_farm"))
         return
     end
@@ -1317,7 +1357,7 @@ task.spawn(function()
                 if not ok and alive and state.autoFarm then task.wait(2) end
             end
         else
-            if not state.autoFactory and not state.autoMaterials and not state.autoRaid and not state.autoChest and not state.autoStory and not flying then
+            if not state.autoFactory and not state.autoMaterials and not state.autoRaid and not state.autoChest and not state.autoStory and not state.autoObs and not flying then
                 if not state.autoFarm and not state.autoStats and not state.autoGacha then
                     statusText = T("farm_off")
                 end
@@ -1785,7 +1825,7 @@ local function flyToIsland()
         notify(T("cancelled"))
         return
     end
-    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory then
+    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoObs then
         notify(T("turn_off_farm"))
         return
     end
@@ -2526,6 +2566,137 @@ do
     end)
 end
 
+local Obs = { status = "-" }
+
+do
+    local lastKen = 0
+
+    local function keepKenOn()
+        if os.clock() - lastKen < (OBS_USE_KEY and 25 or 3) then return end
+        lastKen = os.clock()
+        if OBS_USE_KEY then
+            pcall(function()
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+            end)
+        else
+            local comm = getCommF()
+            if comm then
+                pcall(function() comm:InvokeServer("Ken", true) end)
+            end
+        end
+    end
+
+    local function mobsNear(mobName, center, radius)
+        local folder = Workspace:FindFirstChild("Enemies")
+        local n = 0
+        if not folder then return 0 end
+        for _, e in ipairs(folder:GetChildren()) do
+            local hum = e:FindFirstChildOfClass("Humanoid")
+            local er = e:FindFirstChild("HumanoidRootPart")
+            if hum and er and hum.Health > 0 and baseName(e.Name) == mobName
+                and (er.Position - center).Magnitude <= radius then
+                n = n + 1
+            end
+        end
+        return n
+    end
+
+    local function retreat(abort)
+        Obs.status = T("obs_lowhp")
+        local root = getRoot()
+        if root then flyToPos(root.Position + Vector3.new(0, 90, 0), abort) end
+        local t0 = os.clock()
+        while not abort() and os.clock() - t0 < 25 do
+            local hum = getHumanoid()
+            if not hum or hum.Health / math.max(hum.MaxHealth, 1) >= OBS_SAFE_HP then break end
+            task.wait(1)
+        end
+    end
+
+    task.spawn(function()
+        while alive do
+            if state.autoObs then
+                if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
+                    or state.autoChest or state.autoStory then
+                    state.autoObs = false
+                    refreshGui()
+                else
+                    local abort = function() return not (alive and state.autoObs) end
+                    local hum = getHumanoid()
+                    local root = getRoot()
+
+                    if not root or not hum or hum.Health <= 0 then
+                        Obs.status = T("waiting_respawn")
+                        task.wait(1)
+                    elseif hum.Health / math.max(hum.MaxHealth, 1) < OBS_LOW_HP then
+                        retreat(abort)
+                    else
+                        local q = pickQuest()
+                        local mob = q and getNearestQuestMob(q.mob)
+                        if not mob then
+                            Obs.status = T("obs_no_mobs")
+                            if q then
+                                local sp = getSpawnPositions(q.mob)
+                                if #sp > 0 then
+                                    flyToPos(sp[1] + Vector3.new(0, 6, 0), abort)
+                                end
+                            end
+                            task.wait(2)
+                        else
+                            local mroot = mob:FindFirstChild("HumanoidRootPart")
+                            local mhum = mob:FindFirstChildOfClass("Humanoid")
+                            if mroot and mhum then
+                                startFarmPhysics()
+
+                                local dir = root.Position - mroot.Position
+                                dir = Vector3.new(dir.X, 0, dir.Z)
+                                if dir.Magnitude < 0.5 then dir = Vector3.new(1, 0, 0) end
+                                dir = dir.Unit
+
+                                local function standPos()
+                                    return mroot.Position + dir * OBS_DISTANCE
+                                end
+
+                                if (standPos() - root.Position).Magnitude > 60 then
+                                    flyToPos(standPos(), abort)
+                                end
+
+                                local conn
+                                conn = RunService.Heartbeat:Connect(function()
+                                    local r = getRoot()
+                                    if alive and not abort() and r and mroot.Parent and mhum.Health > 0 then
+                                        r.CFrame = CFrame.new(standPos(), mroot.Position)
+                                    else
+                                        conn:Disconnect()
+                                    end
+                                end)
+
+                                local t0 = os.clock()
+                                while not abort() and mroot.Parent and mhum.Health > 0 and os.clock() - t0 < 90 do
+                                    keepKenOn()
+                                    local h = getHumanoid()
+                                    if not h or h.Health <= 0
+                                        or h.Health / math.max(h.MaxHealth, 1) < OBS_LOW_HP then
+                                        break
+                                    end
+                                    Obs.status = T("obs_active", mobsNear(q.mob, mroot.Position, 40))
+                                    task.wait(0.5)
+                                end
+                                if conn then conn:Disconnect() end
+                            end
+                        end
+                    end
+                end
+            else
+                task.wait(0.5)
+            end
+            task.wait()
+        end
+    end)
+end
+
 local function seaForLevel(l)
     if l < 700 then return "Sea 1" end
     if l < 1500 then return "Sea 2" end
@@ -2558,6 +2729,29 @@ local function nextIslandText(lvl)
     nextCacheLvl = lvl
     nextCacheText = nextReq and (seaForLevel(nextReq) .. " • Lv " .. nextReq) or T("max")
     return nextCacheText
+end
+
+local function toggleObs()
+    if flying then stopFlying() end
+    state.autoObs = not state.autoObs
+    if state.autoObs then
+        state.autoFarm = false
+        state.autoFactory = false
+        state.autoMaterials = false
+        state.autoRaid = false
+        state.autoChest = false
+        state.autoStory = false
+        state.fastAttack = false
+        farmMobSet = nil
+    else
+        stopFarmPhysics()
+    end
+    refreshGui()
+end
+
+local function toggleSounds()
+    state.sounds = not state.sounds
+    refreshGui()
 end
 
 local function toggleFast()
@@ -2806,6 +3000,17 @@ local function glass(obj, transp, strokeT)
     return s
 end
 
+local function addHover(obj, stroke)
+    if not stroke then return end
+    local base = stroke.Transparency
+    obj.MouseEnter:Connect(function()
+        TweenService:Create(stroke, TweenInfo.new(0.15), {Transparency = math.max(base - 0.35, 0.1)}):Play()
+    end)
+    obj.MouseLeave:Connect(function()
+        TweenService:Create(stroke, TweenInfo.new(0.15), {Transparency = base}):Play()
+    end)
+end
+
 local W, H = 600, 420
 
 local main = Instance.new("Frame")
@@ -2818,6 +3023,10 @@ main.BorderSizePixel = 0
 main.Active = true
 main.Parent = gui
 corner(main, UDim.new(0, 20))
+
+local mainScale = Instance.new("UIScale")
+mainScale.Scale = 1
+mainScale.Parent = main
 
 local mainGrad = Instance.new("UIGradient")
 mainGrad.Color = ColorSequence.new(Color3.fromRGB(76, 64, 148), Color3.fromRGB(16, 18, 38))
@@ -2950,7 +3159,10 @@ local function windowButton(text, x, tint, callback)
     glass(b, 0.88, 0.7)
     if tint then b.BackgroundColor3 = tint b.BackgroundTransparency = 0.45 end
     corner(b, UDim.new(1, 0))
-    b.Activated:Connect(callback)
+    b.Activated:Connect(function()
+        playSound(SOUND_CLICK, 1)
+        callback()
+    end)
     return b
 end
 
@@ -3007,7 +3219,7 @@ for i, name in ipairs(tabNames) do
     b.TextSize = 14
     b.AutoButtonColor = false
     b.Parent = sidebar
-    glass(b, 0.9, 0.8)
+    addHover(b, glass(b, 0.9, 0.8))
     corner(b, UDim.new(0, 12))
     tabButtons[name] = b
 end
@@ -3063,13 +3275,24 @@ local shopPage = makePage("Shop")
 local miscPage = makePage("Misc")
 
 local function setTab(name)
+    local changed = currentTab ~= name
     currentTab = name
     for n, p in pairs(pages) do p.Visible = (n == name) end
+
+    local page = pages[name]
+    if changed and page then
+        page.Position = UDim2.new(0, CONTENT_X, 0, CONTENT_Y + 16)
+        TweenService:Create(page, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Position = UDim2.new(0, CONTENT_X, 0, CONTENT_Y)}):Play()
+    end
     refreshGui()
 end
 
 for name, b in pairs(tabButtons) do
-    b.Activated:Connect(function() setTab(name) end)
+    b.Activated:Connect(function()
+        playSound(SOUND_CLICK, 1)
+        setTab(name)
+    end)
 end
 
 table.insert(updaters, function()
@@ -3100,7 +3323,7 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     row.AutoButtonColor = false
     row.LayoutOrder = nextOrder(parent)
     row.Parent = parent
-    glass(row, 0.9, 0.8)
+    addHover(row, glass(row, 0.9, 0.8))
     corner(row, UDim.new(0, 12))
 
     local label = Instance.new("TextLabel")
@@ -3132,7 +3355,10 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     knob.Parent = pill
     corner(knob, UDim.new(1, 0))
 
-    row.Activated:Connect(callback)
+    row.Activated:Connect(function()
+        callback()
+        playSound(SOUND_CLICK, getFn() and 1.25 or 0.8)
+    end)
 
     local info = TweenInfo.new(0.15, Enum.EasingStyle.Quad)
     table.insert(updaters, function()
@@ -3168,7 +3394,10 @@ local function makeSegment(parent, labels, getIdx, onSelect, isSel)
         b.Parent = row
         glass(b, 0.9, 0.8)
         corner(b, UDim.new(0, 10))
-        b.Activated:Connect(function() onSelect(i) end)
+        b.Activated:Connect(function()
+            onSelect(i)
+            playSound(SOUND_CLICK, 1)
+        end)
         buttons[i] = b
     end
 
@@ -3191,9 +3420,12 @@ local function makeButton(parent, getText, getActive, callback)
     b.TextColor3 = Color3.new(1, 1, 1)
     b.LayoutOrder = nextOrder(parent)
     b.Parent = parent
-    glass(b, 0.9, 0.7)
+    addHover(b, glass(b, 0.9, 0.7))
     corner(b, UDim.new(0, 12))
-    b.Activated:Connect(callback)
+    b.Activated:Connect(function()
+        callback()
+        playSound(SOUND_CLICK, 1)
+    end)
 
     table.insert(updaters, function()
         b.Text = getText()
@@ -3235,6 +3467,10 @@ sectionLabel(autoPage, T("sec_story"))
 makeToggle(autoPage, T("tg_story2"), "", function() return state.autoStory and Story.mode == 2 end, toggleSea2)
 makeToggle(autoPage, T("tg_story3"), "", function() return state.autoStory and Story.mode == 3 end, toggleSea3)
 local storyInfo = makeInfo(autoPage)
+
+sectionLabel(autoPage, T("sec_obs"))
+makeToggle(autoPage, T("tg_obs"), "", function() return state.autoObs end, toggleObs)
+local obsInfo = makeInfo(autoPage)
 
 sectionLabel(autoPage, T("sec_raid"))
 makeToggle(autoPage, "Auto Raid", "", function() return state.autoRaid end, toggleRaid)
@@ -3302,6 +3538,7 @@ local function rebuildIslandList()
         corner(b, UDim.new(0, 10))
         b.Activated:Connect(function()
             tpSelected = isl.name
+            playSound(SOUND_CLICK, 1)
             refreshGui()
         end)
         tpRows[#tpRows + 1] = { btn = b, name = isl.name }
@@ -3384,6 +3621,7 @@ makeSegment(miscPage, {"90", "130", "170", "220"}, function() return flySpeedInd
 sectionLabel(miscPage, T("sec_misc"))
 makeToggle(miscPage, T("tg_flyfruit"), "F3", function() return flying end, flyToNearestFruit)
 makeToggle(miscPage, T("tg_blur"), "", function() return state.blur end, toggleBlur)
+makeToggle(miscPage, T("tg_sounds"), "", function() return state.sounds end, toggleSounds)
 
 local statusRow = Instance.new("Frame")
 statusRow.Position = UDim2.new(0, CONTENT_X, 1, -14 - 26)
@@ -3414,7 +3652,9 @@ status.Parent = statusRow
 
 refreshGui = function()
     for _, update in ipairs(updaters) do update() end
-    dot.BackgroundColor3 = (state.autoFarm or state.autoFactory) and GOOD or MUTED
+    local anyMode = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
+        or state.autoChest or state.autoStory or state.autoObs
+    dot.BackgroundColor3 = anyMode and GOOD or MUTED
 end
 
 local circle = Instance.new("TextButton")
@@ -3434,21 +3674,49 @@ circle.Parent = gui
 corner(circle, UDim.new(1, 0))
 brandGradient(circle).Rotation = 45
 
+local circleScale = Instance.new("UIScale")
+circleScale.Scale = 1
+circleScale.Parent = circle
+
 local circleStroke = Instance.new("UIStroke")
 circleStroke.Color = Color3.new(1, 1, 1)
 circleStroke.Thickness = 1.5
 circleStroke.Transparency = 0.5
 circleStroke.Parent = circle
 
+local guiShown = true
+local guiAnim = 0
+
 local function setGuiVisible(v)
+    if v == guiShown then return end
+    guiShown = v
+    guiAnim = guiAnim + 1
+    local id = guiAnim
+    playSound(SOUND_CLICK, v and 1.2 or 0.9)
+
     if v then
         main.Position = circle.Position
+        circle.Visible = false
+        main.Visible = true
+        mainScale.Scale = 0.85
+        TweenService:Create(mainScale, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Scale = 1}):Play()
+        applyBlur()
     else
         circle.Position = main.Position
+        TweenService:Create(mainScale, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+            {Scale = 0.85}):Play()
+        task.delay(0.17, function()
+            if id ~= guiAnim then return end
+            main.Visible = false
+            mainScale.Scale = 1
+            circle.Visible = true
+            circleScale.Scale = 0.5
+            TweenService:Create(circleScale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+                {Scale = 1}):Play()
+            applyBlur()
+        end)
     end
-    main.Visible = v
-    circle.Visible = not v
-    applyBlur()
 end
 
 makeDraggable(circle, circle, function() setGuiVisible(true) end)
@@ -3463,6 +3731,7 @@ local function killAll()
     state.autoRaid = false
     state.autoChest = false
     state.autoStory = false
+    state.autoObs = false
     stopFlying()
     stopFarmPhysics()
     clearFruitESP()
@@ -3475,6 +3744,8 @@ end
 
 windowButton("-", -76, nil, function() setGuiVisible(false) end)
 windowButton("X", -40, RED, killAll)
+
+local dotPulse = false
 
 task.spawn(function()
     while alive do
@@ -3494,6 +3765,7 @@ task.spawn(function()
         chestInfo.Text = T("chest_info", Chest.found, Chest.collected)
         storyInfo.Text = T("story_info", Story.status)
         shopInfo.Text = T("shop_info", Shop.status)
+        obsInfo.Text = T("obs_info", Obs.status)
         local selCount = 0
         for _ in pairs(matSel) do selCount = selCount + 1 end
         local sea = currentSea()
@@ -3511,6 +3783,13 @@ task.spawn(function()
         end
         gachaInfo.Text = gtxt
         status.Text = statusText
+
+        local active = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
+            or state.autoChest or state.autoStory or state.autoObs
+        dotPulse = not dotPulse
+        TweenService:Create(dot, TweenInfo.new(0.5, Enum.EasingStyle.Sine),
+            {BackgroundTransparency = (active and dotPulse) and 0.6 or 0}):Play()
+
         task.wait(0.5)
     end
 end)
@@ -3538,7 +3817,7 @@ track(UIS.InputBegan:Connect(function(input, processed)
     elseif k == Enum.KeyCode.F4 then toggleFarm()
     elseif k == Enum.KeyCode.F5 then setWeapon(weaponIndex % #WEAPONS + 1)
     elseif k == Enum.KeyCode.F6 then toggleFast()
-    elseif k == Enum.KeyCode.RightShift then setGuiVisible(not main.Visible)
+    elseif k == Enum.KeyCode.RightShift then setGuiVisible(not guiShown)
     end
 end))
 
