@@ -42,10 +42,10 @@ local EXTRA_BOSS_NAMES = {}
 
 local FORCE_QUEST = nil
 
-local ACCENT   = Color3.fromRGB(139, 92, 246)
-local ACCENT2  = Color3.fromRGB(236, 72, 153)
+local ACCENT   = Color3.fromRGB(59, 130, 246)
+local ACCENT2  = Color3.fromRGB(56, 189, 248)
 local TEXT     = Color3.fromRGB(240, 240, 250)
-local MUTED    = Color3.fromRGB(170, 172, 200)
+local MUTED    = Color3.fromRGB(160, 182, 220)
 local RED      = Color3.fromRGB(220, 70, 90)
 local GOOD     = Color3.fromRGB(52, 199, 120)
 
@@ -74,7 +74,7 @@ do
     round(panel, 20)
 
     local pg = Instance.new("UIGradient")
-    pg.Color = ColorSequence.new(Color3.fromRGB(76, 64, 148), Color3.fromRGB(16, 18, 38))
+    pg.Color = ColorSequence.new(Color3.fromRGB(28, 70, 160), Color3.fromRGB(8, 16, 44))
     pg.Rotation = 55
     pg.Parent = panel
 
@@ -286,6 +286,17 @@ local I18N = {
         obs_lowhp = "Мало HP, отхожу и жду",
         obs_no_mobs = "Нет подходящих мобов, ищу",
         tg_sounds = "Звуки",
+        sec_items = "АВТО-ПРЕДМЕТЫ",
+        tg_item_sh = "Авто Superhuman (СХ)",
+        tg_item_gh = "Авто Godhuman (ГХ)",
+        items_soon = "КДК, ТТК и Soul Guitar пока недоступны",
+        item_need_style = "Нужен стиль: %s%s",
+        item_mastery = "Мастерство %s: %d / %d",
+        item_buying = "Пробую купить %s...",
+        item_done = "%s получен!",
+        item_msg = "%s: игра пишет: %s",
+        item_materials = "Фарм материалов для %s",
+        item_wait = "%s: условия не выполнены, повтор через минуту",
     },
     en = {
         status_wait = "Idle",
@@ -412,6 +423,17 @@ local I18N = {
         obs_lowhp = "Low HP, backing off and waiting",
         obs_no_mobs = "No suitable mobs, searching",
         tg_sounds = "Sounds",
+        sec_items = "AUTO ITEMS",
+        tg_item_sh = "Auto Superhuman (SH)",
+        tg_item_gh = "Auto Godhuman (GH)",
+        items_soon = "CDK, TTK and Soul Guitar are not available yet",
+        item_need_style = "Style required: %s%s",
+        item_mastery = "Mastery %s: %d / %d",
+        item_buying = "Trying to buy %s...",
+        item_done = "%s obtained!",
+        item_msg = "%s: game says: %s",
+        item_materials = "Farming materials for %s",
+        item_wait = "%s: requirements not met, retrying in a minute",
     },
 }
 
@@ -432,6 +454,7 @@ local function track(c) table.insert(connections, c) return c end
 local weaponIndex = 1
 local farmMobName = nil
 local farmMobSet = nil
+local farmToolName = nil
 
 local function baseName(n)
     return (n:gsub("%s*%[.-%]%s*$", ""))
@@ -463,6 +486,7 @@ local state = {
     autoChest = false,
     autoStory = false,
     autoObs = false,
+    autoItem = false,
     sounds = true,
     chestStop = true,
     splitStats = false,
@@ -685,7 +709,7 @@ local function flyToNearestFruit()
         notify(T("cancelled"))
         return
     end
-    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoObs then
+    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoObs or state.autoItem then
         notify(T("turn_off_farm"))
         return
     end
@@ -806,6 +830,23 @@ local function equipWeapon()
     local char = player.Character
     local hum = getHumanoid()
     if not char or not hum then return end
+    if farmToolName then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") then
+                if tool.Name == farmToolName then return tool end
+                hum:UnequipTools()
+                break
+            end
+        end
+        for _, tool in ipairs(player.Backpack:GetChildren()) do
+            if tool:IsA("Tool") and tool.Name == farmToolName then
+                hum:EquipTool(tool)
+                return tool
+            end
+        end
+        return
+    end
+
     local want = WEAPONS[weaponIndex]
 
     for _, tool in ipairs(char:GetChildren()) do
@@ -1825,7 +1866,7 @@ local function flyToIsland()
         notify(T("cancelled"))
         return
     end
-    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoObs then
+    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoObs or state.autoItem then
         notify(T("turn_off_farm"))
         return
     end
@@ -2697,6 +2738,185 @@ do
     end)
 end
 
+local Items = { status = "-", target = "SH", farming = false }
+
+do
+    local DEFS = {
+        SH = {
+            label = "Superhuman",
+            buy = { "BuySuperhuman" },
+            mastery = 300,
+            styles = {
+                { name = "Black Leg", args = { "BuyBlackLeg" } },
+                { name = "Electro", args = { "BuyElectro" } },
+                { name = "Fishman Karate", args = { "BuyFishmanKarate" } },
+                { name = "Dragon Claw", args = { "BlackbeardReward", "DragonClaw", "2" } },
+            },
+        },
+        GH = {
+            label = "Godhuman",
+            buy = { "BuyGodhuman" },
+            mastery = 400,
+            styles = {
+                { name = "Superhuman", args = { "BuySuperhuman" } },
+                { name = "Death Step", args = { "BuyDeathStep" } },
+                { name = "Sharkman Karate", args = { "BuySharkmanKarate" } },
+                { name = "Electric Claw", args = { "BuyElectricClaw" } },
+                { name = "Dragon Talon", args = { "BuyDragonTalon" } },
+            },
+            materials = { "fish_tail", "magma_ore", "mystic_droplet", "radioactive", "dragon_scale" },
+        },
+    }
+
+    local function findTool(name)
+        for _, container in ipairs({ player.Character, player.Backpack }) do
+            if container then
+                for _, t in ipairs(container:GetChildren()) do
+                    if t:IsA("Tool") and t.Name == name then return t end
+                end
+            end
+        end
+        return nil
+    end
+
+    local function masteryOf(tool)
+        local lv = tool:FindFirstChild("Level")
+        if lv and (lv:IsA("IntValue") or lv:IsA("NumberValue")) then return lv.Value end
+        return nil
+    end
+
+    local function stopFarm()
+        if Items.farming then
+            Items.farming = false
+            state.autoFarm = false
+            state.autoMaterials = false
+            farmToolName = nil
+            farmMobSet = nil
+            stopFarmPhysics()
+            refreshGui()
+        end
+    end
+
+    local function startMasteryFarm(toolName)
+        if Items.farming and farmToolName == toolName and state.autoFarm then return end
+        farmToolName = toolName
+        state.autoMaterials = false
+        state.autoFarm = true
+        Items.farming = true
+        refreshGui()
+    end
+
+    local function startMaterialFarm(def)
+        farmToolName = nil
+        for _, id in ipairs(def.materials) do matSel[id] = true end
+        state.autoFarm = false
+        state.autoMaterials = true
+        Items.farming = true
+        refreshGui()
+    end
+
+    local function buyCall(args, label)
+        local comm = getCommF()
+        if not comm then
+            Items.status = T("commf_missing")
+            return false, ""
+        end
+
+        Items.status = T("item_buying", label)
+        local ok, res, msgs = captureMessages(function()
+            return comm:InvokeServer(table.unpack(args))
+        end)
+        print("[VitaHub] item " .. label .. ": " .. describeReply(res))
+
+        local text = #msgs > 0 and table.concat(msgs, " / ") or ""
+        if text ~= "" then Items.status = T("item_msg", label, text) end
+        return ok, text
+    end
+
+    local function step(def, abort)
+        if findTool(def.label) then
+            stopFarm()
+            Items.status = T("item_done", def.label)
+            notify(T("item_done", def.label))
+            state.autoItem = false
+            refreshGui()
+            return
+        end
+
+        for _, st in ipairs(def.styles) do
+            local tool = findTool(st.name)
+
+            if not tool then
+                stopFarm()
+                local _, text = buyCall(st.args, st.name)
+                task.wait(2)
+                if not findTool(st.name) then
+                    Items.status = T("item_need_style", st.name, text ~= "" and (" | " .. text) or "")
+                    task.wait(8)
+                end
+                return
+            end
+
+            local m = masteryOf(tool)
+            if m and m < def.mastery then
+                startMasteryFarm(st.name)
+                Items.status = T("item_mastery", st.name, m, def.mastery)
+                task.wait(3)
+                return
+            end
+        end
+
+        stopFarm()
+        buyCall(def.buy, def.label)
+        task.wait(2)
+        if findTool(def.label) then return end
+
+        if def.materials then
+            Items.status = T("item_materials", def.label)
+            startMaterialFarm(def)
+            local t0 = os.clock()
+            while not abort() and os.clock() - t0 < 600 do
+                task.wait(2)
+            end
+            stopFarm()
+        else
+            Items.status = T("item_wait", def.label)
+            local t0 = os.clock()
+            while not abort() and os.clock() - t0 < 60 do
+                task.wait(1)
+            end
+        end
+    end
+
+    task.spawn(function()
+        while alive do
+            if state.autoItem then
+                if state.autoRaid or state.autoChest or state.autoStory or state.autoObs or state.autoFactory then
+                    state.autoItem = false
+                    stopFarm()
+                    refreshGui()
+                else
+                    local def = DEFS[Items.target]
+                    local abort = function() return not (alive and state.autoItem) end
+                    local hum = getHumanoid()
+
+                    if not def then
+                        state.autoItem = false
+                    elseif getRoot() and hum and hum.Health > 0 then
+                        step(def, abort)
+                    else
+                        task.wait(1)
+                    end
+                end
+            else
+                stopFarm()
+                task.wait(0.5)
+            end
+            task.wait()
+        end
+    end)
+end
+
 local function seaForLevel(l)
     if l < 700 then return "Sea 1" end
     if l < 1500 then return "Sea 2" end
@@ -2730,6 +2950,30 @@ local function nextIslandText(lvl)
     nextCacheText = nextReq and (seaForLevel(nextReq) .. " • Lv " .. nextReq) or T("max")
     return nextCacheText
 end
+
+local function toggleItem(target)
+    if flying then stopFlying() end
+    if state.autoItem and Items.target == target then
+        state.autoItem = false
+    else
+        Items.target = target
+        Items.farming = false
+        state.autoItem = true
+        state.autoFarm = false
+        state.autoMaterials = false
+        state.autoFactory = false
+        state.autoRaid = false
+        state.autoChest = false
+        state.autoStory = false
+        state.autoObs = false
+        farmMobSet = nil
+        farmToolName = nil
+    end
+    refreshGui()
+end
+
+local function toggleItemSH() toggleItem("SH") end
+local function toggleItemGH() toggleItem("GH") end
 
 local function toggleObs()
     if flying then stopFlying() end
@@ -3029,7 +3273,7 @@ mainScale.Scale = 1
 mainScale.Parent = main
 
 local mainGrad = Instance.new("UIGradient")
-mainGrad.Color = ColorSequence.new(Color3.fromRGB(76, 64, 148), Color3.fromRGB(16, 18, 38))
+mainGrad.Color = ColorSequence.new(Color3.fromRGB(28, 70, 160), Color3.fromRGB(8, 16, 44))
 mainGrad.Rotation = 55
 mainGrad.Parent = main
 
@@ -3331,7 +3575,7 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     label.Size = UDim2.new(1, -76, 1, 0)
     label.BackgroundTransparency = 1
     label.RichText = true
-    label.Text = text .. (hotkey ~= "" and ('  <font color="#9a9cc0" size="11">' .. hotkey .. "</font>") or "")
+    label.Text = text .. (hotkey ~= "" and ('  <font color="#8fb0e0" size="11">' .. hotkey .. "</font>") or "")
     label.TextColor3 = TEXT
     label.Font = Enum.Font.GothamMedium
     label.TextSize = 14
@@ -3341,7 +3585,7 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     local pill = Instance.new("Frame")
     pill.Size = UDim2.new(0, 40, 0, 22)
     pill.Position = UDim2.new(1, -52, 0.5, -11)
-    pill.BackgroundColor3 = Color3.fromRGB(110, 112, 140)
+    pill.BackgroundColor3 = Color3.fromRGB(92, 112, 156)
     pill.BackgroundTransparency = 0.4
     pill.BorderSizePixel = 0
     pill.Parent = row
@@ -3364,7 +3608,7 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     table.insert(updaters, function()
         local on = getFn()
         TweenService:Create(pill, info, {
-            BackgroundColor3 = on and ACCENT or Color3.fromRGB(110, 112, 140),
+            BackgroundColor3 = on and ACCENT or Color3.fromRGB(92, 112, 156),
             BackgroundTransparency = on and 0.05 or 0.4,
         }):Play()
         TweenService:Create(knob, info, {
@@ -3462,6 +3706,13 @@ makeSegment(combatPage, {"20", "30", "45", "60"}, function() return farmHeightIn
 sectionLabel(visualsPage, "ESP")
 makeToggle(visualsPage, "ESP Fruits", "F2", function() return state.espFruits end, toggleFruitESP)
 makeToggle(visualsPage, "ESP Players", "", function() return state.espPlayers end, togglePlayerESP)
+
+sectionLabel(autoPage, T("sec_items"))
+makeToggle(autoPage, T("tg_item_sh"), "", function() return state.autoItem and Items.target == "SH" end, toggleItemSH)
+makeToggle(autoPage, T("tg_item_gh"), "", function() return state.autoItem and Items.target == "GH" end, toggleItemGH)
+local itemInfo = makeInfo(autoPage)
+local itemSoon = makeInfo(autoPage)
+itemSoon.Text = T("items_soon")
 
 sectionLabel(autoPage, T("sec_story"))
 makeToggle(autoPage, T("tg_story2"), "", function() return state.autoStory and Story.mode == 2 end, toggleSea2)
@@ -3653,7 +3904,7 @@ status.Parent = statusRow
 refreshGui = function()
     for _, update in ipairs(updaters) do update() end
     local anyMode = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
-        or state.autoChest or state.autoStory or state.autoObs
+        or state.autoChest or state.autoStory or state.autoObs or state.autoItem
     dot.BackgroundColor3 = anyMode and GOOD or MUTED
 end
 
@@ -3732,6 +3983,7 @@ local function killAll()
     state.autoChest = false
     state.autoStory = false
     state.autoObs = false
+    state.autoItem = false
     stopFlying()
     stopFarmPhysics()
     clearFruitESP()
@@ -3766,6 +4018,7 @@ task.spawn(function()
         storyInfo.Text = T("story_info", Story.status)
         shopInfo.Text = T("shop_info", Shop.status)
         obsInfo.Text = T("obs_info", Obs.status)
+        itemInfo.Text = Items.status
         local selCount = 0
         for _ in pairs(matSel) do selCount = selCount + 1 end
         local sea = currentSea()
@@ -3785,7 +4038,7 @@ task.spawn(function()
         status.Text = statusText
 
         local active = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
-            or state.autoChest or state.autoStory or state.autoObs
+            or state.autoChest or state.autoStory or state.autoObs or state.autoItem
         dotPulse = not dotPulse
         TweenService:Create(dot, TweenInfo.new(0.5, Enum.EasingStyle.Sine),
             {BackgroundTransparency = (active and dotPulse) and 0.6 or 0}):Play()
