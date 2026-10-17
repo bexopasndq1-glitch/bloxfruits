@@ -6,9 +6,6 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SoundService = game:GetService("SoundService")
-local Debris = game:GetService("Debris")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 
@@ -29,23 +26,15 @@ local BLUR_SIZE = 14
 local BOSS_RANGE = 1500
 local BOSS_TIMEOUT = 150
 local MATERIAL_DWELL = 300
-local FRUIT_FARM_HEIGHT = 10
-local OBS_DISTANCE = 7
-local OBS_LOW_HP = 0.35
-local OBS_SAFE_HP = 0.8
-local OBS_USE_KEY = false
-local SOUND_CLICK = "rbxassetid://6895079853"
-local SOUND_NOTIFY = "rbxasset://sounds/electronicpingshort.wav"
-local SOUND_VOLUME = 0.6
 
 local EXTRA_BOSS_NAMES = {}
 
 local FORCE_QUEST = nil
 
 local ACCENT   = Color3.fromRGB(59, 130, 246)
-local ACCENT2  = Color3.fromRGB(56, 189, 248)
+local ACCENT2  = Color3.fromRGB(34, 211, 238)
 local TEXT     = Color3.fromRGB(240, 240, 250)
-local MUTED    = Color3.fromRGB(160, 182, 220)
+local MUTED    = Color3.fromRGB(170, 172, 200)
 local RED      = Color3.fromRGB(220, 70, 90)
 local GOOD     = Color3.fromRGB(52, 199, 120)
 
@@ -74,7 +63,7 @@ do
     round(panel, 20)
 
     local pg = Instance.new("UIGradient")
-    pg.Color = ColorSequence.new(Color3.fromRGB(28, 70, 160), Color3.fromRGB(8, 16, 44))
+    pg.Color = ColorSequence.new(Color3.fromRGB(30, 74, 160), Color3.fromRGB(8, 20, 48))
     pg.Rotation = 55
     pg.Parent = panel
 
@@ -258,6 +247,30 @@ local I18N = {
         story_call = "Вызов %s: %s",
         story_boss_fail = "Босс не найден: %s",
         story_done = "Квест моря выполнен",
+        sec_ken = "НАБЛЮДЕНИЕ",
+        ken_info = "Observation: %s",
+        ken_going = "Лечу к мобам: %s",
+        ken_status = "Уклоняюсь от %s, дистанция %d",
+        ken_heal = "Мало здоровья, отхожу вверх",
+        ken_no_mobs = "Нет мобов для Observation: %s",
+        sec_mastery = "МАСТЕРИ ОРУЖИЯ",
+        mastery_info = "Мастери: %s",
+        mastery_status = "%s: %d из %d",
+        mastery_nolevel = "%s: мастери не читается, фарм идёт",
+        mastery_missing = "Нет оружия: %s",
+        mastery_done = "Мастери %s достигнуто: %d",
+        tg_sound = "Звуки и оповещения",
+        shop_sea = "%s: нужно другое море. %s",
+        shop_fly = "Лечу к учителю: %s",
+        sec_radius = "РАДИУС",
+        tg_predict = "Упреждение",
+        tg_ignore_team = "Не целиться в свою команду",
+        tg_target_hl = "Подсветка цели",
+        sec_pvp_extra = "ДОПОЛНИТЕЛЬНО",
+        tg_auto_buso = "Авто Buso Haki",
+        pvp_target = "Цель: %s | HP %d | %d м",
+        pvp_none = "Цель: нет",
+        pvp_no_hook = "Silent Aim недоступен: в executor нет hookmetamethod",
         sec_farm = "ФАРМ",
         tg_autofarm = "Автофарм",
         sec_weapon = "ОРУЖИЕ",
@@ -279,24 +292,6 @@ local I18N = {
         storage_info = "Хранилище: ",
         gacha_info = "Ответ сервера: ",
         loaded = "VitaHub v1.0 загружен. RightShift - скрыть меню",
-        sec_obs = "OBSERVATION",
-        tg_obs = "Авто-фарм Observation",
-        obs_info = "Observation: %s",
-        obs_active = "Уворачиваюсь, мобов рядом: %d",
-        obs_lowhp = "Мало HP, отхожу и жду",
-        obs_no_mobs = "Нет подходящих мобов, ищу",
-        tg_sounds = "Звуки",
-        sec_items = "АВТО-ПРЕДМЕТЫ",
-        tg_item_sh = "Авто Superhuman (СХ)",
-        tg_item_gh = "Авто Godhuman (ГХ)",
-        items_soon = "КДК, ТТК и Soul Guitar пока недоступны",
-        item_need_style = "Нужен стиль: %s%s",
-        item_mastery = "Мастерство %s: %d / %d",
-        item_buying = "Пробую купить %s...",
-        item_done = "%s получен!",
-        item_msg = "%s: игра пишет: %s",
-        item_materials = "Фарм материалов для %s",
-        item_wait = "%s: условия не выполнены, повтор через минуту",
     },
     en = {
         status_wait = "Idle",
@@ -395,6 +390,30 @@ local I18N = {
         story_call = "Call %s: %s",
         story_boss_fail = "Boss not found: %s",
         story_done = "Sea quest finished",
+        sec_ken = "OBSERVATION",
+        ken_info = "Observation: %s",
+        ken_going = "Flying to mobs: %s",
+        ken_status = "Dodging %s, distance %d",
+        ken_heal = "Low health, retreating up",
+        ken_no_mobs = "No mobs for Observation: %s",
+        sec_mastery = "WEAPON MASTERY",
+        mastery_info = "Mastery: %s",
+        mastery_status = "%s: %d of %d",
+        mastery_nolevel = "%s: can't read mastery, farming anyway",
+        mastery_missing = "Weapon not found: %s",
+        mastery_done = "%s mastery reached: %d",
+        tg_sound = "Sounds",
+        shop_sea = "%s: wrong sea. %s",
+        shop_fly = "Flying to the teacher: %s",
+        sec_radius = "RADIUS",
+        tg_predict = "Prediction",
+        tg_ignore_team = "Ignore teammates",
+        tg_target_hl = "Target Highlight",
+        sec_pvp_extra = "EXTRA",
+        tg_auto_buso = "Auto Buso Haki",
+        pvp_target = "Target: %s | HP %d | %d m",
+        pvp_none = "Target: none",
+        pvp_no_hook = "Silent Aim unavailable: executor has no hookmetamethod",
         sec_farm = "FARM",
         tg_autofarm = "Auto Farm",
         sec_weapon = "WEAPON",
@@ -416,24 +435,6 @@ local I18N = {
         storage_info = "Storage: ",
         gacha_info = "Server reply: ",
         loaded = "VitaHub v1.0 loaded. RightShift - hide menu",
-        sec_obs = "OBSERVATION",
-        tg_obs = "Auto Farm Observation",
-        obs_info = "Observation: %s",
-        obs_active = "Dodging, mobs nearby: %d",
-        obs_lowhp = "Low HP, backing off and waiting",
-        obs_no_mobs = "No suitable mobs, searching",
-        tg_sounds = "Sounds",
-        sec_items = "AUTO ITEMS",
-        tg_item_sh = "Auto Superhuman (SH)",
-        tg_item_gh = "Auto Godhuman (GH)",
-        items_soon = "CDK, TTK and Soul Guitar are not available yet",
-        item_need_style = "Style required: %s%s",
-        item_mastery = "Mastery %s: %d / %d",
-        item_buying = "Trying to buy %s...",
-        item_done = "%s obtained!",
-        item_msg = "%s: game says: %s",
-        item_materials = "Farming materials for %s",
-        item_wait = "%s: requirements not met, retrying in a minute",
     },
 }
 
@@ -454,7 +455,6 @@ local function track(c) table.insert(connections, c) return c end
 local weaponIndex = 1
 local farmMobName = nil
 local farmMobSet = nil
-local farmToolName = nil
 
 local function baseName(n)
     return (n:gsub("%s*%[.-%]%s*$", ""))
@@ -485,12 +485,11 @@ local state = {
     autoRaid = false,
     autoChest = false,
     autoStory = false,
-    autoObs = false,
-    autoItem = false,
-    sounds = true,
     chestStop = true,
     splitStats = false,
     blur = true,
+    sound = true,
+    autoKen = false,
 }
 
 local STAT_NAMES = {"Melee", "Defense", "Sword", "Gun", "Demon Fruit"}
@@ -504,26 +503,230 @@ local storeTried = setmetatable({}, {__mode = "k"})
 
 local refreshGui = function() end
 
-local function playSound(id, pitch, volume)
-    if not state.sounds then return end
-    pcall(function()
-        local snd = Instance.new("Sound")
-        snd.SoundId = id
-        snd.Volume = volume or SOUND_VOLUME
-        snd.PlaybackSpeed = pitch or 1
-        snd.Parent = SoundService
-        snd:Play()
-        Debris:AddItem(snd, 4)
-    end)
-end
+local notify
+local toastGui
+local uiSound
 
-local function notify(text)
-    playSound(SOUND_NOTIFY, 1, 0.5)
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "VitaHub", Text = text, Duration = 3,
+do
+    toastGui = Instance.new("ScreenGui")
+    toastGui.Name = "VitaHubToasts"
+    toastGui.ResetOnSpawn = false
+    toastGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    toastGui.DisplayOrder = 50
+    local okT = pcall(function() toastGui.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+    if not okT or not toastGui.Parent then toastGui.Parent = player:WaitForChild("PlayerGui") end
+
+    local holder = Instance.new("Frame")
+    holder.AnchorPoint = Vector2.new(1, 0)
+    holder.Position = UDim2.new(1, -16, 0, 16)
+    holder.Size = UDim2.new(0, 330, 1, -32)
+    holder.BackgroundTransparency = 1
+    holder.Parent = toastGui
+
+    local holderLayout = Instance.new("UIListLayout")
+    holderLayout.Padding = UDim.new(0, 8)
+    holderLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    holderLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    holderLayout.Parent = holder
+
+    local function mkSound(speed, volume)
+        local snd = Instance.new("Sound")
+        snd.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+        snd.PlaybackSpeed = speed
+        snd.Volume = volume
+        snd.Parent = toastGui
+        return snd
+    end
+
+    local sounds = {
+        click = mkSound(1.9, 0.35),
+        on = mkSound(1.6, 0.45),
+        off = mkSound(1.05, 0.4),
+        toast = mkSound(1.3, 0.7),
+        alert = mkSound(0.85, 0.7),
+    }
+
+    uiSound = function(kind)
+        if not state.sound then return end
+        local snd = sounds[kind]
+        if snd then
+            pcall(function()
+                snd.TimePosition = 0
+                snd:Play()
+            end)
+        end
+    end
+
+    local counter = 0
+    local live = {}
+
+    local function round(obj, r)
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, r)
+        c.Parent = obj
+        return c
+    end
+
+    local function show(text, danger)
+        counter = counter + 1
+        local accent = danger and RED or ACCENT
+        local duration = danger and 5.5 or 4
+
+        while #live >= 5 do
+            local old = table.remove(live, 1)
+            pcall(function() old:Destroy() end)
+        end
+
+        local wrapper = Instance.new("Frame")
+        wrapper.Size = UDim2.new(1, 0, 0, 0)
+        wrapper.AutomaticSize = Enum.AutomaticSize.Y
+        wrapper.BackgroundTransparency = 1
+        wrapper.LayoutOrder = counter
+        wrapper.Parent = holder
+        table.insert(live, wrapper)
+
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, 0, 0, 0)
+        card.AutomaticSize = Enum.AutomaticSize.Y
+        card.Position = UDim2.new(1.2, 0, 0, 0)
+        card.BackgroundColor3 = Color3.new(1, 1, 1)
+        card.BackgroundTransparency = 0.6
+        card.BorderSizePixel = 0
+        card.Parent = wrapper
+        round(card, 14)
+
+        local grad = Instance.new("UIGradient")
+        grad.Color = ColorSequence.new(Color3.fromRGB(30, 74, 160), Color3.fromRGB(8, 20, 48))
+        grad.Rotation = 55
+        grad.Parent = card
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = accent
+        stroke.Thickness = 1.4
+        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        stroke.Parent = card
+
+        local strokeGrad = Instance.new("UIGradient")
+        strokeGrad.Rotation = 45
+        strokeGrad.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.05),
+            NumberSequenceKeypoint.new(0.5, 0.7),
+            NumberSequenceKeypoint.new(1, 0.1),
         })
-    end)
+        strokeGrad.Parent = stroke
+
+        local content = Instance.new("Frame")
+        content.Size = UDim2.new(1, 0, 0, 0)
+        content.AutomaticSize = Enum.AutomaticSize.Y
+        content.BackgroundTransparency = 1
+        content.Parent = card
+
+        local pad = Instance.new("UIPadding")
+        pad.PaddingTop = UDim.new(0, 10)
+        pad.PaddingBottom = UDim.new(0, 12)
+        pad.PaddingLeft = UDim.new(0, 14)
+        pad.PaddingRight = UDim.new(0, 14)
+        pad.Parent = content
+
+        local list = Instance.new("UIListLayout")
+        list.Padding = UDim.new(0, 6)
+        list.SortOrder = Enum.SortOrder.LayoutOrder
+        list.Parent = content
+
+        local head = Instance.new("Frame")
+        head.Size = UDim2.new(1, 0, 0, 16)
+        head.BackgroundTransparency = 1
+        head.LayoutOrder = 1
+        head.Parent = content
+
+        local dot = Instance.new("Frame")
+        dot.Size = UDim2.new(0, 8, 0, 8)
+        dot.Position = UDim2.new(0, 0, 0.5, -4)
+        dot.BackgroundColor3 = accent
+        dot.BorderSizePixel = 0
+        dot.Parent = head
+        round(dot, 4)
+
+        local title = Instance.new("TextLabel")
+        title.Position = UDim2.new(0, 16, 0, 0)
+        title.Size = UDim2.new(1, -16, 1, 0)
+        title.BackgroundTransparency = 1
+        title.Text = "VitaHub"
+        title.TextColor3 = MUTED
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 11
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.Parent = head
+
+        local msg = Instance.new("TextLabel")
+        msg.Size = UDim2.new(1, 0, 0, 0)
+        msg.AutomaticSize = Enum.AutomaticSize.Y
+        msg.BackgroundTransparency = 1
+        msg.Text = tostring(text)
+        msg.TextColor3 = TEXT
+        msg.Font = Enum.Font.GothamMedium
+        msg.TextSize = 14
+        msg.TextWrapped = true
+        msg.TextXAlignment = Enum.TextXAlignment.Left
+        msg.TextYAlignment = Enum.TextYAlignment.Top
+        msg.LayoutOrder = 2
+        msg.Parent = content
+
+        local bar = Instance.new("Frame")
+        bar.Size = UDim2.new(1, 0, 0, 3)
+        bar.BackgroundColor3 = accent
+        bar.BorderSizePixel = 0
+        bar.LayoutOrder = 3
+        bar.Parent = content
+        round(bar, 2)
+
+        TweenService:Create(card, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Position = UDim2.new(0, 0, 0, 0),
+        }):Play()
+        TweenService:Create(card, TweenInfo.new(0.3), { BackgroundTransparency = 0.2 }):Play()
+        TweenService:Create(bar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+            Size = UDim2.new(0, 0, 0, 3),
+        }):Play()
+
+        uiSound(danger and "alert" or "toast")
+
+        task.delay(duration, function()
+            if not wrapper.Parent then return end
+
+            local out = TweenService:Create(card, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Position = UDim2.new(1.2, 0, 0, 0),
+            })
+            out:Play()
+            out.Completed:Wait()
+            if not wrapper.Parent then return end
+
+            local h = wrapper.AbsoluteSize.Y
+            wrapper.AutomaticSize = Enum.AutomaticSize.None
+            wrapper.Size = UDim2.new(1, 0, 0, h)
+            local collapse = TweenService:Create(wrapper, TweenInfo.new(0.2), { Size = UDim2.new(1, 0, 0, 0) })
+            collapse:Play()
+            collapse.Completed:Wait()
+
+            for i, w in ipairs(live) do
+                if w == wrapper then
+                    table.remove(live, i)
+                    break
+                end
+            end
+            pcall(function() wrapper:Destroy() end)
+        end)
+    end
+
+    notify = function(text, danger)
+        local ok = pcall(show, text, danger)
+        if not ok then
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "VitaHub", Text = tostring(text), Duration = 3,
+                })
+            end)
+        end
+    end
 end
 
 local function getRoot()
@@ -549,41 +752,6 @@ end
 local function getCommF()
     local remotes = ReplicatedStorage:FindFirstChild("Remotes")
     return remotes and remotes:FindFirstChild("CommF_")
-end
-
-local function getHeldTool()
-    local char = player.Character
-    return char and char:FindFirstChildOfClass("Tool")
-end
-
-local function currentFarmHeight()
-    local tool = getHeldTool()
-    if WEAPONS[weaponIndex] == "Blox Fruit" or (tool and tool.ToolTip == "Blox Fruit") then
-        return FRUIT_FARM_HEIGHT
-    end
-    return FARM_HEIGHT
-end
-
-local fruitLogged = {}
-
-local function fruitAttack(tool, targetPos)
-    local root = getRoot()
-    if not root then return end
-
-    local dir = targetPos and (targetPos - root.Position) or root.CFrame.LookVector
-    if dir.Magnitude < 0.01 then dir = Vector3.new(0, -1, 0) end
-    dir = dir.Unit
-
-    local remote = tool:FindFirstChild("LeftClickRemote")
-    if remote then
-        pcall(function() remote:FireServer(dir, 1) end)
-    end
-    pcall(function() tool:Activate() end)
-
-    if not fruitLogged[tool.Name] then
-        fruitLogged[tool.Name] = true
-        print("[VitaHub] fruit " .. tool.Name .. ", LeftClickRemote: " .. tostring(remote ~= nil))
-    end
 end
 
 track(player.Idled:Connect(function()
@@ -709,7 +877,7 @@ local function flyToNearestFruit()
         notify(T("cancelled"))
         return
     end
-    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoObs or state.autoItem then
+    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoKen then
         notify(T("turn_off_farm"))
         return
     end
@@ -778,8 +946,17 @@ local function netAttack()
     local folder = Workspace:FindFirstChild("Enemies")
     if not root or not folder then return end
 
+    findNet()
+    if not (RegisterAttack and RegisterHit) then
+        if not netWarned then
+            netWarned = true
+            notify(T("net_missing"))
+        end
+        return
+    end
+
     local onlyMob = (state.autoFarm or state.autoFactory) and farmMobName or nil
-    local range = math.max(FAST_RANGE, currentFarmHeight() + 30)
+    local range = math.max(FAST_RANGE, FARM_HEIGHT + 30)
     local onlySet = state.autoMaterials and farmMobSet or nil
 
     local list = {}
@@ -794,20 +971,6 @@ local function netAttack()
         end
     end
     if #list == 0 then return end
-
-    local tool = getHeldTool()
-    if tool and tool.ToolTip == "Blox Fruit" then
-        fruitAttack(tool, list[1][2].Position)
-    end
-
-    findNet()
-    if not (RegisterAttack and RegisterHit) then
-        if not netWarned then
-            netWarned = true
-            notify(T("net_missing"))
-        end
-        return
-    end
 
     local first = list[1][1]:FindFirstChild("Head") or list[1][2]
     RegisterAttack:FireServer(0.1)
@@ -826,25 +989,22 @@ end)
 local farmNoclip
 local farmTween
 
+local forcedWeapon = nil
+
 local function equipWeapon()
     local char = player.Character
     local hum = getHumanoid()
     if not char or not hum then return end
-    if farmToolName then
-        for _, tool in ipairs(char:GetChildren()) do
-            if tool:IsA("Tool") then
-                if tool.Name == farmToolName then return tool end
-                hum:UnequipTools()
-                break
-            end
+
+    if forcedWeapon then
+        local held = char:FindFirstChild(forcedWeapon)
+        if held and held:IsA("Tool") then return held end
+        local tool = player.Backpack:FindFirstChild(forcedWeapon)
+        if tool and tool:IsA("Tool") then
+            hum:UnequipTools()
+            hum:EquipTool(tool)
+            return tool
         end
-        for _, tool in ipairs(player.Backpack:GetChildren()) do
-            if tool:IsA("Tool") and tool.Name == farmToolName then
-                hum:EquipTool(tool)
-                return tool
-            end
-        end
-        return
     end
 
     local want = WEAPONS[weaponIndex]
@@ -1171,7 +1331,7 @@ local function attackMob(mob, q, abort)
 
     local r = getRoot()
     if r and (mroot.Position - r.Position).Magnitude > FARM_APPROACH then
-        if not flyToPos(mroot.Position + Vector3.new(0, currentFarmHeight(), 0), abort) then return end
+        if not flyToPos(mroot.Position + Vector3.new(0, FARM_HEIGHT, 0), abort) then return end
     end
     startFarmPhysics()
 
@@ -1179,7 +1339,7 @@ local function attackMob(mob, q, abort)
     conn = RunService.Heartbeat:Connect(function()
         local root = getRoot()
         if alive and not abort() and root and mroot.Parent and hum.Health > 0 then
-            local pos = mroot.Position + Vector3.new(0, currentFarmHeight(), 0)
+            local pos = mroot.Position + Vector3.new(0, FARM_HEIGHT, 0)
             root.CFrame = CFrame.new(pos, mroot.Position)
         else
             conn:Disconnect()
@@ -1398,7 +1558,7 @@ task.spawn(function()
                 if not ok and alive and state.autoFarm then task.wait(2) end
             end
         else
-            if not state.autoFactory and not state.autoMaterials and not state.autoRaid and not state.autoChest and not state.autoStory and not state.autoObs and not flying then
+            if not state.autoFactory and not state.autoMaterials and not state.autoRaid and not state.autoChest and not state.autoStory and not state.autoKen and not flying then
                 if not state.autoFarm and not state.autoStats and not state.autoGacha then
                     statusText = T("farm_off")
                 end
@@ -1866,7 +2026,7 @@ local function flyToIsland()
         notify(T("cancelled"))
         return
     end
-    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoObs or state.autoItem then
+    if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoKen then
         notify(T("turn_off_farm"))
         return
     end
@@ -2152,7 +2312,7 @@ local function rollGacha()
 
     if not success and res == nil and #msgs == 0 then
         local npc = findGachaNpc()
-        local busy = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or flying
+        local busy = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid or state.autoChest or state.autoStory or state.autoKen or flying
         local root = getRoot()
         if npc and root and not busy and (root.Position - npc.Position).Magnitude > 30 then
             gachaStatus = T("gacha_fly")
@@ -2334,52 +2494,154 @@ end
 local Shop = { status = "-" }
 
 do
+    local function seaSet(...)
+        local t = {}
+        for _, v in ipairs({ ... }) do t[v] = true end
+        return t
+    end
+
     Shop.swords = {
-        { name = "Cutlass",          args = { "BuyItem", "Cutlass" } },
-        { name = "Katana",           args = { "BuyItem", "Katana" } },
-        { name = "Iron Mace",        args = { "BuyItem", "Iron Mace" } },
-        { name = "Dual Katana",      args = { "BuyItem", "Duel Katana" } },
-        { name = "Triple Katana",    args = { "BuyItem", "Triple Katana" } },
-        { name = "Pipe",             args = { "BuyItem", "Pipe" } },
+        { name = "Cutlass",           args = { "BuyItem", "Cutlass" } },
+        { name = "Katana",            args = { "BuyItem", "Katana" } },
+        { name = "Iron Mace",         args = { "BuyItem", "Iron Mace" } },
+        { name = "Dual Katana",       args = { "BuyItem", "Duel Katana" } },
+        { name = "Triple Katana",     args = { "BuyItem", "Triple Katana" } },
+        { name = "Pipe",              args = { "BuyItem", "Pipe" } },
         { name = "Dual-Headed Blade", args = { "BuyItem", "Dual-Headed Blade" } },
-        { name = "Bisento",          args = { "BuyItem", "Bisento" } },
-        { name = "Soul Cane",        args = { "BuyItem", "Soul Cane" } },
+        { name = "Bisento",           args = { "BuyItem", "Bisento" } },
+        { name = "Soul Cane",         args = { "BuyItem", "Soul Cane" } },
     }
 
     Shop.styles = {
-        { name = "Black Leg",        args = { "BuyBlackLeg" } },
-        { name = "Electro",          args = { "BuyElectro" } },
-        { name = "Fishman Karate",   args = { "BuyFishmanKarate" } },
-        { name = "Dragon Claw",      args = { "BlackbeardReward", "DragonClaw", "2" } },
-        { name = "Superhuman",       args = { "BuySuperhuman" } },
-        { name = "Death Step",       args = { "BuyDeathStep" } },
-        { name = "Sharkman Karate",  args = { "BuySharkmanKarate" } },
-        { name = "Electric Claw",    args = { "BuyElectricClaw" } },
-        { name = "Dragon Talon",     args = { "BuyDragonTalon" } },
-        { name = "Godhuman",         args = { "BuyGodhuman" } },
-        { name = "Sanguine Art",     args = { "BuySanguineArt" } },
+        { name = "Black Leg",
+          attempts = { { "BuyBlackLeg" }, { "BuyBlackLeg", true } },
+          npc = { "dark step", "black leg", "phoeyu" },
+          where = "Dark Step Teacher, Pirate Village Sea 1, 150,000 Beli" },
+        { name = "Electro",
+          attempts = { { "BuyElectro" }, { "BuyElectro", true } },
+          npc = { "mad scientist", "electro" },
+          where = "Mad Scientist, Skylands Sea 1, 500,000 Beli" },
+        { name = "Fishman Karate",
+          attempts = { { "BuyFishmanKarate" }, { "BuyFishmanKarate", true } },
+          npc = { "water kung", "fishman karate" },
+          where = "Water Kung Fu Teacher, Underwater City, 750,000 Beli" },
+        { name = "Dragon Claw",
+          attempts = { { "BlackbeardReward", "DragonClaw", "2" } },
+          seas = seaSet(2),
+          npc = { "sabi" },
+          where = "Sabi, Kingdom of Rose Sea 2, 1,500 Fragments" },
+        { name = "Superhuman",
+          attempts = { { "BuySuperhuman" }, { "BuySuperhuman", true } },
+          seas = seaSet(2, 3),
+          npc = { "martial arts" },
+          where = "Martial Arts Master, Snow Mountain Sea 2, 3,000,000 Beli, 300 mastery on Dark Step Electric Water Kung Fu Dragon Breath" },
+        { name = "Death Step",
+          attempts = { { "BuyDeathStep" }, { "BuyDeathStep", true } },
+          seas = seaSet(2),
+          npc = { "death step" },
+          where = "Death Step teacher, Library Sea 2, 2,500,000 Beli, 5,000 Fragments, 400 Dark Step, Library Key" },
+        { name = "Sharkman Karate",
+          attempts = { { "BuySharkmanKarate" }, { "BuySharkmanKarate", true } },
+          seas = seaSet(2, 3),
+          npc = { "daigrock", "sharkman" },
+          where = "Daigrock, Forgotten Island Sea 2, 2,500,000 Beli, 5,000 Fragments, 400 Water Kung Fu, Water Key" },
+        { name = "Electric Claw",
+          attempts = { { "BuyElectricClaw" }, { "BuyElectricClaw", true } },
+          seas = seaSet(3),
+          npc = { "previous hero" },
+          where = "Previous Hero, Floating Turtle Sea 3, 3,000,000 Beli, 5,000 Fragments, 400 Electro" },
+        { name = "Dragon Talon",
+          attempts = { { "BuyDragonTalon" }, { "BuyDragonTalon", true } },
+          seas = seaSet(3),
+          npc = { "uzoth" },
+          where = "Uzoth, Hydra Island Sea 3, 3,000,000 Beli, 5,000 Fragments, 400 Dragon Breath" },
+        { name = "Godhuman",
+          attempts = { { "BuyGodhuman" }, { "BuyGodhuman", true } },
+          seas = seaSet(3),
+          npc = { "ancient monk" },
+          where = "Ancient Monk, Temple of Time Sea 3, 5,000,000 Beli, 5,000 Fragments, 400 mastery on the five elite styles, materials" },
+        { name = "Sanguine Art",
+          attempts = { { "BuySanguineArt" }, { "BuySanguineArt", true } },
+          seas = seaSet(3),
+          npc = { "sanguine" },
+          where = "Sanguine Art teacher, Sea 3, special materials" },
     }
 
     Shop.abilities = {
-        { name = "Buso Haki",        args = { "BuyHaki", "Buso" } },
-        { name = "Geppo",            args = { "BuyHaki", "Geppo" } },
-        { name = "Soru",             args = { "BuyHaki", "Soru" } },
-        { name = "Ken Haki",         args = { "KenTalk", "Buy" } },
+        { name = "Buso Haki", args = { "BuyHaki", "Buso" },  npc = { "ability teacher" } },
+        { name = "Geppo",     args = { "BuyHaki", "Geppo" }, npc = { "ability teacher" } },
+        { name = "Soru",      args = { "BuyHaki", "Soru" },  npc = { "ability teacher" } },
+        { name = "Ken Haki",  args = { "KenTalk", "Buy" } },
     }
 
+    local function findNpcPart(patterns)
+        local folder = Workspace:FindFirstChild("NPCs")
+        if not folder then return nil end
+        for _, n in ipairs(folder:GetChildren()) do
+            local low = n.Name:lower()
+            for _, pat in ipairs(patterns) do
+                if low:find(pat, 1, true) then
+                    local part
+                    if n:IsA("Model") then
+                        part = n.PrimaryPart or n:FindFirstChild("HumanoidRootPart")
+                    elseif n:IsA("BasePart") then
+                        part = n
+                    end
+                    if part then return part end
+                end
+            end
+        end
+        return nil
+    end
+
+    local function shopBusy()
+        return state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
+            or state.autoChest or state.autoStory or state.autoKen or flying
+    end
+
+    local buying = false
+
     function Shop.buy(item)
+        if buying then return end
+
         local comm = getCommF()
         if not comm then
             Shop.status = T("commf_missing")
             return
         end
 
-        Shop.status = T("shop_buying", item.name)
+        local sea = currentSea()
+        if item.seas and sea and not item.seas[sea] then
+            Shop.status = T("shop_sea", item.name, item.where or "")
+            return
+        end
+
+        buying = true
         task.spawn(function()
-            local ok, res, msgs = captureMessages(function()
-                return comm:InvokeServer(table.unpack(item.args))
-            end)
-            print("[VitaHub] shop " .. item.name .. ": " .. describeReply(res))
+            Shop.status = item.where and (item.name .. ": " .. item.where) or T("shop_buying", item.name)
+
+            if item.npc and not shopBusy() then
+                local part = findNpcPart(item.npc)
+                local root = getRoot()
+                if part and root and (part.Position - root.Position).Magnitude > 25 then
+                    Shop.status = T("shop_fly", item.name)
+                    flyToPos(part.Position + Vector3.new(0, 4, 0), function() return not alive end)
+                    stopFarmPhysics()
+                    task.wait(0.4)
+                end
+            end
+
+            local attempts = item.attempts or { item.args }
+            local ok, res, msgs = true, nil, {}
+            for _, args in ipairs(attempts) do
+                ok, res, msgs = captureMessages(function()
+                    return comm:InvokeServer(table.unpack(args))
+                end)
+                print("[VitaHub] shop " .. item.name .. " " .. tostring(args[1]) .. ": " .. describeReply(res))
+                if not ok or #msgs > 0 or res == 1 or res == true or (type(res) == "string" and res ~= "") then
+                    break
+                end
+            end
 
             if not ok then
                 Shop.status = item.name .. ": " .. T("call_error")
@@ -2390,11 +2652,202 @@ do
             elseif type(res) == "string" and res ~= "" then
                 Shop.status = item.name .. ": " .. res
             elseif res == nil then
-                Shop.status = T("shop_noreply", item.name)
+                Shop.status = T("shop_noreply", item.name) .. (item.where and (" | " .. item.where) or "")
             else
                 Shop.status = T("shop_reply", item.name, describeReply(res))
             end
+            buying = false
         end)
+    end
+end
+
+local PvP = {
+    silent = false, predict = true, team = true, highlight = true, buso = false,
+    radiusIdx = 3, radii = { 100, 200, 300, 500 }, target = nil, status = "-",
+}
+
+do
+    local mouse = player:GetMouse()
+    local hooked = false
+
+    local function pickTarget()
+        local myRoot = getRoot()
+        if not myRoot then return nil end
+        local radius = PvP.radii[PvP.radiusIdx]
+        local best, bestDist
+        for _, plr in ipairs(Players:GetPlayers()) do
+            local mate = PvP.team and plr.Team ~= nil and plr.Team == player.Team
+            if plr ~= player and not mate then
+                local ch = plr.Character
+                local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+                local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+                if hum and hrp and hum.Health > 0 then
+                    local d = (hrp.Position - myRoot.Position).Magnitude
+                    if d <= radius and (not bestDist or d < bestDist) then
+                        best, bestDist = plr, d
+                    end
+                end
+            end
+        end
+        return best, bestDist
+    end
+
+    function PvP.aimPos()
+        local plr = PvP.target
+        local ch = plr and plr.Character
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        if not hrp then return nil end
+        local pos = hrp.Position
+        if PvP.predict then
+            pos = pos + hrp.AssemblyLinearVelocity * 0.12
+        end
+        return pos
+    end
+
+    local function installHooks()
+        if hooked then return true end
+        if not (hookmetamethod and getnamecallmethod and newcclosure and checkcaller) then
+            return false
+        end
+
+        local oldIndex
+        oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
+            if PvP.silent and PvP.target and self == mouse and not checkcaller() then
+                if key == "Hit" then
+                    local pos = PvP.aimPos()
+                    if pos then return CFrame.new(pos) end
+                elseif key == "Target" then
+                    local ch = PvP.target.Character
+                    local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+                    if hrp then return hrp end
+                end
+            end
+            return oldIndex(self, key)
+        end))
+
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+            if PvP.silent and PvP.target and not checkcaller() then
+                local method = getnamecallmethod()
+                if method == "FireServer" or method == "InvokeServer" then
+                    local owner = self.Parent
+                    local char = player.Character
+                    if owner and char and owner:IsA("Tool") and owner.Parent == char then
+                        local pos = PvP.aimPos()
+                        if pos then
+                            local args = { ... }
+                            local changed = false
+                            for i = 1, select("#", ...) do
+                                local a = args[i]
+                                if typeof(a) == "Vector3" then
+                                    args[i] = pos
+                                    changed = true
+                                elseif typeof(a) == "CFrame" then
+                                    args[i] = CFrame.new(pos)
+                                    changed = true
+                                end
+                            end
+                            if changed then
+                                return oldNamecall(self, table.unpack(args, 1, select("#", ...)))
+                            end
+                        end
+                    end
+                end
+            end
+            return oldNamecall(self, ...)
+        end))
+
+        hooked = true
+        return true
+    end
+
+    task.spawn(function()
+        local hl
+        while alive do
+            if PvP.silent then
+                local plr, dist = pickTarget()
+                PvP.target = plr
+                local ch = plr and plr.Character
+                if plr and ch then
+                    local hum = ch:FindFirstChildOfClass("Humanoid")
+                    PvP.status = T("pvp_target", plr.DisplayName, hum and math.floor(hum.Health) or 0, math.floor(dist or 0))
+                    if PvP.highlight then
+                        if not hl then
+                            hl = Instance.new("Highlight")
+                            hl.FillColor = RED
+                            hl.OutlineColor = Color3.new(1, 1, 1)
+                            hl.FillTransparency = 0.7
+                            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        end
+                        hl.Adornee = ch
+                        hl.Parent = ch
+                    elseif hl then
+                        hl.Adornee = nil
+                    end
+                else
+                    PvP.status = T("pvp_none")
+                    if hl then hl.Adornee = nil end
+                end
+            else
+                PvP.target = nil
+                PvP.status = T("pvp_none")
+                if hl then
+                    hl:Destroy()
+                    hl = nil
+                end
+            end
+            task.wait(0.1)
+        end
+        if hl then hl:Destroy() end
+    end)
+
+    task.spawn(function()
+        while alive do
+            if PvP.buso then
+                local ch = player.Character
+                if ch and not ch:FindFirstChild("HasBuso") then
+                    local comm = getCommF()
+                    if comm then pcall(function() comm:InvokeServer("Buso") end) end
+                end
+            end
+            task.wait(2)
+        end
+    end)
+
+    function PvP.toggleSilent()
+        if PvP.silent then
+            PvP.silent = false
+        elseif installHooks() then
+            PvP.silent = true
+        else
+            notify(T("pvp_no_hook"))
+        end
+        refreshGui()
+    end
+
+    function PvP.setRadius(i)
+        PvP.radiusIdx = i
+        refreshGui()
+    end
+
+    function PvP.togglePredict()
+        PvP.predict = not PvP.predict
+        refreshGui()
+    end
+
+    function PvP.toggleTeam()
+        PvP.team = not PvP.team
+        refreshGui()
+    end
+
+    function PvP.toggleHighlight()
+        PvP.highlight = not PvP.highlight
+        refreshGui()
+    end
+
+    function PvP.toggleBuso()
+        PvP.buso = not PvP.buso
+        refreshGui()
     end
 end
 
@@ -2592,6 +3045,7 @@ do
                         end
                         if ok or fatal then
                             state.autoStory = false
+        state.autoKen = false
                             stopFarmPhysics()
                             refreshGui()
                         else
@@ -2607,320 +3061,198 @@ do
     end)
 end
 
-local Obs = { status = "-" }
-
-do
-    local lastKen = 0
-
-    local function keepKenOn()
-        if os.clock() - lastKen < (OBS_USE_KEY and 25 or 3) then return end
-        lastKen = os.clock()
-        if OBS_USE_KEY then
-            pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.05)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            end)
-        else
-            local comm = getCommF()
-            if comm then
-                pcall(function() comm:InvokeServer("Ken", true) end)
-            end
-        end
-    end
-
-    local function mobsNear(mobName, center, radius)
-        local folder = Workspace:FindFirstChild("Enemies")
-        local n = 0
-        if not folder then return 0 end
-        for _, e in ipairs(folder:GetChildren()) do
-            local hum = e:FindFirstChildOfClass("Humanoid")
-            local er = e:FindFirstChild("HumanoidRootPart")
-            if hum and er and hum.Health > 0 and baseName(e.Name) == mobName
-                and (er.Position - center).Magnitude <= radius then
-                n = n + 1
-            end
-        end
-        return n
-    end
-
-    local function retreat(abort)
-        Obs.status = T("obs_lowhp")
-        local root = getRoot()
-        if root then flyToPos(root.Position + Vector3.new(0, 90, 0), abort) end
-        local t0 = os.clock()
-        while not abort() and os.clock() - t0 < 25 do
-            local hum = getHumanoid()
-            if not hum or hum.Health / math.max(hum.MaxHealth, 1) >= OBS_SAFE_HP then break end
-            task.wait(1)
-        end
-    end
-
-    task.spawn(function()
-        while alive do
-            if state.autoObs then
-                if state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
-                    or state.autoChest or state.autoStory then
-                    state.autoObs = false
-                    refreshGui()
-                else
-                    local abort = function() return not (alive and state.autoObs) end
-                    local hum = getHumanoid()
-                    local root = getRoot()
-
-                    if not root or not hum or hum.Health <= 0 then
-                        Obs.status = T("waiting_respawn")
-                        task.wait(1)
-                    elseif hum.Health / math.max(hum.MaxHealth, 1) < OBS_LOW_HP then
-                        retreat(abort)
-                    else
-                        local q = pickQuest()
-                        local mob = q and getNearestQuestMob(q.mob)
-                        if not mob then
-                            Obs.status = T("obs_no_mobs")
-                            if q then
-                                local sp = getSpawnPositions(q.mob)
-                                if #sp > 0 then
-                                    flyToPos(sp[1] + Vector3.new(0, 6, 0), abort)
-                                end
-                            end
-                            task.wait(2)
-                        else
-                            local mroot = mob:FindFirstChild("HumanoidRootPart")
-                            local mhum = mob:FindFirstChildOfClass("Humanoid")
-                            if mroot and mhum then
-                                startFarmPhysics()
-
-                                local dir = root.Position - mroot.Position
-                                dir = Vector3.new(dir.X, 0, dir.Z)
-                                if dir.Magnitude < 0.5 then dir = Vector3.new(1, 0, 0) end
-                                dir = dir.Unit
-
-                                local function standPos()
-                                    return mroot.Position + dir * OBS_DISTANCE
-                                end
-
-                                if (standPos() - root.Position).Magnitude > 60 then
-                                    flyToPos(standPos(), abort)
-                                end
-
-                                local conn
-                                conn = RunService.Heartbeat:Connect(function()
-                                    local r = getRoot()
-                                    if alive and not abort() and r and mroot.Parent and mhum.Health > 0 then
-                                        r.CFrame = CFrame.new(standPos(), mroot.Position)
-                                    else
-                                        conn:Disconnect()
-                                    end
-                                end)
-
-                                local t0 = os.clock()
-                                while not abort() and mroot.Parent and mhum.Health > 0 and os.clock() - t0 < 90 do
-                                    keepKenOn()
-                                    local h = getHumanoid()
-                                    if not h or h.Health <= 0
-                                        or h.Health / math.max(h.MaxHealth, 1) < OBS_LOW_HP then
-                                        break
-                                    end
-                                    Obs.status = T("obs_active", mobsNear(q.mob, mroot.Position, 40))
-                                    task.wait(0.5)
-                                end
-                                if conn then conn:Disconnect() end
-                            end
-                        end
-                    end
-                end
-            else
-                task.wait(0.5)
-            end
-            task.wait()
-        end
-    end)
-end
-
-local Items = { status = "-", target = "SH", farming = false }
-
-do
-    local DEFS = {
-        SH = {
-            label = "Superhuman",
-            buy = { "BuySuperhuman" },
-            mastery = 300,
-            styles = {
-                { name = "Black Leg", args = { "BuyBlackLeg" } },
-                { name = "Electro", args = { "BuyElectro" } },
-                { name = "Fishman Karate", args = { "BuyFishmanKarate" } },
-                { name = "Dragon Claw", args = { "BlackbeardReward", "DragonClaw", "2" } },
-            },
-        },
-        GH = {
-            label = "Godhuman",
-            buy = { "BuyGodhuman" },
-            mastery = 400,
-            styles = {
-                { name = "Superhuman", args = { "BuySuperhuman" } },
-                { name = "Death Step", args = { "BuyDeathStep" } },
-                { name = "Sharkman Karate", args = { "BuySharkmanKarate" } },
-                { name = "Electric Claw", args = { "BuyElectricClaw" } },
-                { name = "Dragon Talon", args = { "BuyDragonTalon" } },
-            },
-            materials = { "fish_tail", "magma_ore", "mystic_droplet", "radioactive", "dragon_scale" },
-        },
-    }
-
-    local function findTool(name)
-        for _, container in ipairs({ player.Character, player.Backpack }) do
-            if container then
-                for _, t in ipairs(container:GetChildren()) do
-                    if t:IsA("Tool") and t.Name == name then return t end
-                end
-            end
-        end
-        return nil
-    end
-
-    local function masteryOf(tool)
-        local lv = tool:FindFirstChild("Level")
-        if lv and (lv:IsA("IntValue") or lv:IsA("NumberValue")) then return lv.Value end
-        return nil
-    end
-
-    local function stopFarm()
-        if Items.farming then
-            Items.farming = false
-            state.autoFarm = false
-            state.autoMaterials = false
-            farmToolName = nil
-            farmMobSet = nil
-            stopFarmPhysics()
-            refreshGui()
-        end
-    end
-
-    local function startMasteryFarm(toolName)
-        if Items.farming and farmToolName == toolName and state.autoFarm then return end
-        farmToolName = toolName
-        state.autoMaterials = false
-        state.autoFarm = true
-        Items.farming = true
-        refreshGui()
-    end
-
-    local function startMaterialFarm(def)
-        farmToolName = nil
-        for _, id in ipairs(def.materials) do matSel[id] = true end
-        state.autoFarm = false
-        state.autoMaterials = true
-        Items.farming = true
-        refreshGui()
-    end
-
-    local function buyCall(args, label)
-        local comm = getCommF()
-        if not comm then
-            Items.status = T("commf_missing")
-            return false, ""
-        end
-
-        Items.status = T("item_buying", label)
-        local ok, res, msgs = captureMessages(function()
-            return comm:InvokeServer(table.unpack(args))
-        end)
-        print("[VitaHub] item " .. label .. ": " .. describeReply(res))
-
-        local text = #msgs > 0 and table.concat(msgs, " / ") or ""
-        if text ~= "" then Items.status = T("item_msg", label, text) end
-        return ok, text
-    end
-
-    local function step(def, abort)
-        if findTool(def.label) then
-            stopFarm()
-            Items.status = T("item_done", def.label)
-            notify(T("item_done", def.label))
-            state.autoItem = false
-            refreshGui()
-            return
-        end
-
-        for _, st in ipairs(def.styles) do
-            local tool = findTool(st.name)
-
-            if not tool then
-                stopFarm()
-                local _, text = buyCall(st.args, st.name)
-                task.wait(2)
-                if not findTool(st.name) then
-                    Items.status = T("item_need_style", st.name, text ~= "" and (" | " .. text) or "")
-                    task.wait(8)
-                end
-                return
-            end
-
-            local m = masteryOf(tool)
-            if m and m < def.mastery then
-                startMasteryFarm(st.name)
-                Items.status = T("item_mastery", st.name, m, def.mastery)
-                task.wait(3)
-                return
-            end
-        end
-
-        stopFarm()
-        buyCall(def.buy, def.label)
-        task.wait(2)
-        if findTool(def.label) then return end
-
-        if def.materials then
-            Items.status = T("item_materials", def.label)
-            startMaterialFarm(def)
-            local t0 = os.clock()
-            while not abort() and os.clock() - t0 < 600 do
-                task.wait(2)
-            end
-            stopFarm()
-        else
-            Items.status = T("item_wait", def.label)
-            local t0 = os.clock()
-            while not abort() and os.clock() - t0 < 60 do
-                task.wait(1)
-            end
-        end
-    end
-
-    task.spawn(function()
-        while alive do
-            if state.autoItem then
-                if state.autoRaid or state.autoChest or state.autoStory or state.autoObs or state.autoFactory then
-                    state.autoItem = false
-                    stopFarm()
-                    refreshGui()
-                else
-                    local def = DEFS[Items.target]
-                    local abort = function() return not (alive and state.autoItem) end
-                    local hum = getHumanoid()
-
-                    if not def then
-                        state.autoItem = false
-                    elseif getRoot() and hum and hum.Health > 0 then
-                        step(def, abort)
-                    else
-                        task.wait(1)
-                    end
-                end
-            else
-                stopFarm()
-                task.wait(0.5)
-            end
-            task.wait()
-        end
-    end)
-end
-
 local function seaForLevel(l)
     if l < 700 then return "Sea 1" end
     if l < 1500 then return "Sea 2" end
     return "Sea 3"
+end
+
+local Ken = { status = "-" }
+
+do
+    local VIM = game:GetService("VirtualInputManager")
+
+    local function fireKen()
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local commE = remotes and remotes:FindFirstChild("CommE")
+        if commE then
+            pcall(function() commE:FireServer("Ken", true) end)
+            return
+        end
+        pcall(function()
+            VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            task.wait(0.05)
+            VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        end)
+    end
+
+    local function farmDodges(q, abort)
+        local spawns = getSpawnPositions(q.mob)
+        if #spawns == 0 then
+            Ken.status = T("ken_no_mobs", q.mob)
+            task.wait(3)
+            return
+        end
+
+        local root = getRoot()
+        if not root then return end
+        table.sort(spawns, function(a, b)
+            return (a - root.Position).Magnitude < (b - root.Position).Magnitude
+        end)
+        local anchor = spawns[1]
+        local cluster, sum = {}, Vector3.zero
+        for _, p in ipairs(spawns) do
+            if (p - anchor).Magnitude <= 250 then
+                cluster[#cluster + 1] = p
+                sum = sum + p
+            end
+        end
+        local center = sum / #cluster
+
+        Ken.status = T("ken_going", q.mob)
+        if not flyToPos(center + Vector3.new(0, 4, 0), abort) then return end
+
+        local lastKen, lastSeen, spIdx = 0, os.clock(), 1
+        while not abort() do
+            local hum, r = getHumanoid(), getRoot()
+            if not hum or not r or hum.Health <= 0 then return end
+
+            if os.clock() - lastKen > 4 then
+                lastKen = os.clock()
+                fireKen()
+            end
+
+            if hum.Health < hum.MaxHealth * 0.4 then
+                Ken.status = T("ken_heal")
+                flyToPos(r.Position + Vector3.new(0, 150, 0), abort)
+                local t0 = os.clock()
+                while not abort() and hum.Health < hum.MaxHealth * 0.9 and os.clock() - t0 < 90 do
+                    task.wait(1)
+                end
+                if abort() then return end
+                flyToPos(center + Vector3.new(0, 4, 0), abort)
+            else
+                local mob = getNearestQuestMob(q.mob)
+                if mob then
+                    lastSeen = os.clock()
+                    local mroot = mob:FindFirstChild("HumanoidRootPart")
+                    if mroot then
+                        local dist = (mroot.Position - r.Position).Magnitude
+                        Ken.status = T("ken_status", q.mob, math.floor(dist))
+                        if dist > 22 then
+                            flyToPos(mroot.Position + Vector3.new(6, 3, 0), abort)
+                        end
+                    end
+                else
+                    Ken.status = T("waiting_mobs", q.mob)
+                    if os.clock() - lastSeen > 6 then
+                        spIdx = spIdx % #cluster + 1
+                        flyToPos(cluster[spIdx] + Vector3.new(0, 4, 0), abort)
+                        lastSeen = os.clock()
+                    end
+                end
+                task.wait(0.4)
+            end
+        end
+    end
+
+    task.spawn(function()
+        while alive do
+            if state.autoKen then
+                local abort = function() return not (alive and state.autoKen) end
+                local hum, root = getHumanoid(), getRoot()
+
+                if not root or not hum or hum.Health <= 0 then
+                    Ken.status = T("waiting_respawn")
+                    task.wait(1)
+                else
+                    local q = pickQuest()
+                    if not q then
+                        Ken.status = T("no_quest")
+                        notify(T("no_quest"))
+                        state.autoKen = false
+                        stopFarmPhysics()
+                        refreshGui()
+                    else
+                        farmDodges(q, abort)
+                    end
+                end
+            else
+                task.wait(0.5)
+            end
+            task.wait()
+        end
+    end)
+end
+
+local Mastery = {
+    idx = 1, targetIdx = 3, active = false, status = "-",
+    weapons = { "Cursed Dual Katana", "True Triple Katana", "Soul Guitar", "Godhuman", "Superhuman" },
+    labels = { "CDK", "TTK", "Soul Guitar", "GH", "SH" },
+    targets = { 400, 500, 600 },
+}
+
+do
+    local function findTool(name)
+        local c = player.Character
+        local t = (c and c:FindFirstChild(name)) or player.Backpack:FindFirstChild(name)
+        if t and t:IsA("Tool") then return t end
+        return nil
+    end
+
+    local function masteryOf(tool)
+        local v = tool:FindFirstChild("Level")
+        if v and (v:IsA("IntValue") or v:IsA("NumberValue")) then return v.Value end
+        local attr = tool:GetAttribute("Level")
+        if type(attr) == "number" then return attr end
+        return nil
+    end
+
+    local function stopMastery()
+        Mastery.active = false
+        forcedWeapon = nil
+        state.autoFarm = false
+        stopFarmPhysics()
+        refreshGui()
+    end
+
+    task.spawn(function()
+        while alive do
+            if Mastery.active then
+                local name = Mastery.weapons[Mastery.idx]
+                local label = Mastery.labels[Mastery.idx]
+                local target = Mastery.targets[Mastery.targetIdx]
+
+                if not state.autoFarm then
+                    Mastery.active = false
+                    forcedWeapon = nil
+                    refreshGui()
+                else
+                    local tool = findTool(name)
+                    if not tool then
+                        Mastery.status = T("mastery_missing", name)
+                        notify(T("mastery_missing", name))
+                        stopMastery()
+                    else
+                        forcedWeapon = name
+                        local lv = masteryOf(tool)
+                        if lv then
+                            Mastery.status = T("mastery_status", label, lv, target)
+                            if lv >= target then
+                                notify(T("mastery_done", label, lv))
+                                stopMastery()
+                            end
+                        else
+                            Mastery.status = T("mastery_nolevel", label)
+                        end
+                    end
+                end
+            elseif forcedWeapon then
+                forcedWeapon = nil
+            end
+            task.wait(2)
+        end
+    end)
 end
 
 local nextCacheLvl, nextCacheText
@@ -2951,53 +3283,6 @@ local function nextIslandText(lvl)
     return nextCacheText
 end
 
-local function toggleItem(target)
-    if flying then stopFlying() end
-    if state.autoItem and Items.target == target then
-        state.autoItem = false
-    else
-        Items.target = target
-        Items.farming = false
-        state.autoItem = true
-        state.autoFarm = false
-        state.autoMaterials = false
-        state.autoFactory = false
-        state.autoRaid = false
-        state.autoChest = false
-        state.autoStory = false
-        state.autoObs = false
-        farmMobSet = nil
-        farmToolName = nil
-    end
-    refreshGui()
-end
-
-local function toggleItemSH() toggleItem("SH") end
-local function toggleItemGH() toggleItem("GH") end
-
-local function toggleObs()
-    if flying then stopFlying() end
-    state.autoObs = not state.autoObs
-    if state.autoObs then
-        state.autoFarm = false
-        state.autoFactory = false
-        state.autoMaterials = false
-        state.autoRaid = false
-        state.autoChest = false
-        state.autoStory = false
-        state.fastAttack = false
-        farmMobSet = nil
-    else
-        stopFarmPhysics()
-    end
-    refreshGui()
-end
-
-local function toggleSounds()
-    state.sounds = not state.sounds
-    refreshGui()
-end
-
 local function toggleFast()
     state.fastAttack = not state.fastAttack
     refreshGui()
@@ -3024,6 +3309,7 @@ local function toggleFarm()
         state.autoRaid = false
         state.autoChest = false
         state.autoStory = false
+        state.autoKen = false
         farmMobSet = nil
     end
     refreshGui()
@@ -3037,6 +3323,7 @@ local function toggleFactory()
         state.autoRaid = false
         state.autoChest = false
         state.autoStory = false
+        state.autoKen = false
     end
     if not state.autoFactory then
         if farmMobName == "Core" then farmMobName = nil end
@@ -3078,6 +3365,7 @@ local function toggleRaid()
         state.autoMaterials = false
         state.autoChest = false
         state.autoStory = false
+        state.autoKen = false
         farmMobSet = nil
     else
         stopFarmPhysics()
@@ -3094,6 +3382,7 @@ local function toggleChest()
         state.autoMaterials = false
         state.autoRaid = false
         state.autoStory = false
+        state.autoKen = false
         farmMobSet = nil
     else
         stopFarmPhysics()
@@ -3114,6 +3403,7 @@ local function toggleStory(mode)
     else
         Story.mode = mode
         state.autoStory = true
+        state.autoKen = false
         state.autoFarm = false
         state.autoFactory = false
         state.autoMaterials = false
@@ -3127,6 +3417,53 @@ end
 local function toggleSea2() toggleStory(2) end
 local function toggleSea3() toggleStory(3) end
 
+local function toggleKen()
+    if flying then stopFlying() end
+    state.autoKen = not state.autoKen
+    if state.autoKen then
+        state.autoFarm = false
+        state.autoFactory = false
+        state.autoMaterials = false
+        state.autoRaid = false
+        state.autoChest = false
+        state.autoStory = false
+        farmMobSet = nil
+    else
+        stopFarmPhysics()
+    end
+    refreshGui()
+end
+
+function Mastery.toggle()
+    if Mastery.active then
+        Mastery.active = false
+        forcedWeapon = nil
+        state.autoFarm = false
+        stopFarmPhysics()
+    else
+        Mastery.active = true
+        forcedWeapon = Mastery.weapons[Mastery.idx]
+        if not state.autoFarm then toggleFarm() end
+    end
+    refreshGui()
+end
+
+function Mastery.setWeapon(i)
+    Mastery.idx = i
+    if Mastery.active then forcedWeapon = Mastery.weapons[i] end
+    refreshGui()
+end
+
+function Mastery.setTarget(i)
+    Mastery.targetIdx = i
+    refreshGui()
+end
+
+local function toggleSound()
+    state.sound = not state.sound
+    refreshGui()
+end
+
 local function toggleMaterials()
     if flying then stopFlying() end
     state.autoMaterials = not state.autoMaterials
@@ -3136,6 +3473,7 @@ local function toggleMaterials()
         state.autoRaid = false
         state.autoChest = false
         state.autoStory = false
+        state.autoKen = false
     else
         farmMobSet = nil
         stopFarmPhysics()
@@ -3244,17 +3582,6 @@ local function glass(obj, transp, strokeT)
     return s
 end
 
-local function addHover(obj, stroke)
-    if not stroke then return end
-    local base = stroke.Transparency
-    obj.MouseEnter:Connect(function()
-        TweenService:Create(stroke, TweenInfo.new(0.15), {Transparency = math.max(base - 0.35, 0.1)}):Play()
-    end)
-    obj.MouseLeave:Connect(function()
-        TweenService:Create(stroke, TweenInfo.new(0.15), {Transparency = base}):Play()
-    end)
-end
-
 local W, H = 600, 420
 
 local main = Instance.new("Frame")
@@ -3268,14 +3595,13 @@ main.Active = true
 main.Parent = gui
 corner(main, UDim.new(0, 20))
 
-local mainScale = Instance.new("UIScale")
-mainScale.Scale = 1
-mainScale.Parent = main
-
 local mainGrad = Instance.new("UIGradient")
-mainGrad.Color = ColorSequence.new(Color3.fromRGB(28, 70, 160), Color3.fromRGB(8, 16, 44))
+mainGrad.Color = ColorSequence.new(Color3.fromRGB(30, 74, 160), Color3.fromRGB(8, 20, 48))
 mainGrad.Rotation = 55
 mainGrad.Parent = main
+
+local mainScale = Instance.new("UIScale")
+mainScale.Parent = main
 
 local mainStroke = Instance.new("UIStroke")
 mainStroke.Color = Color3.new(1, 1, 1)
@@ -3403,10 +3729,7 @@ local function windowButton(text, x, tint, callback)
     glass(b, 0.88, 0.7)
     if tint then b.BackgroundColor3 = tint b.BackgroundTransparency = 0.45 end
     corner(b, UDim.new(1, 0))
-    b.Activated:Connect(function()
-        playSound(SOUND_CLICK, 1)
-        callback()
-    end)
+    b.Activated:Connect(callback)
     return b
 end
 
@@ -3448,22 +3771,22 @@ local function nextOrder(p)
     return orders[p]
 end
 
-local tabNames = {"Combat", "Visuals", "Auto", "Teleport", "Shop", "Misc"}
+local tabNames = {"Combat", "Visuals", "Auto", "Teleport", "Shop", "PvP", "Misc"}
 local pages = {}
 local tabButtons = {}
 local currentTab = "Combat"
 
 for i, name in ipairs(tabNames) do
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 38)
-    b.Position = UDim2.new(0, 0, 0, (i - 1) * 46)
+    b.Size = UDim2.new(1, 0, 0, 34)
+    b.Position = UDim2.new(0, 0, 0, (i - 1) * 40)
     b.Text = name
     b.TextColor3 = TEXT
     b.Font = Enum.Font.GothamBold
     b.TextSize = 14
     b.AutoButtonColor = false
     b.Parent = sidebar
-    addHover(b, glass(b, 0.9, 0.8))
+    glass(b, 0.9, 0.8)
     corner(b, UDim.new(0, 12))
     tabButtons[name] = b
 end
@@ -3516,25 +3839,36 @@ local visualsPage = makePage("Visuals")
 local autoPage = makePage("Auto")
 local tpPage = makePage("Teleport")
 local shopPage = makePage("Shop")
+local pvpPage = makePage("PvP")
 local miscPage = makePage("Misc")
 
 local function setTab(name)
-    local changed = currentTab ~= name
+    local changed = (currentTab ~= name)
     currentTab = name
     for n, p in pairs(pages) do p.Visible = (n == name) end
-
     local page = pages[name]
-    if changed and page then
-        page.Position = UDim2.new(0, CONTENT_X, 0, CONTENT_Y + 16)
-        TweenService:Create(page, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {Position = UDim2.new(0, CONTENT_X, 0, CONTENT_Y)}):Play()
+    if page and changed then
+        page.Position = UDim2.new(0, CONTENT_X + 22, 0, CONTENT_Y)
+        TweenService:Create(page, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = UDim2.new(0, CONTENT_X, 0, CONTENT_Y),
+        }):Play()
     end
     refreshGui()
 end
 
+local function pressFx(btn)
+    local sc = Instance.new("UIScale")
+    sc.Parent = btn
+    local tin = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    btn.MouseButton1Down:Connect(function() TweenService:Create(sc, tin, { Scale = 0.96 }):Play() end)
+    btn.MouseButton1Up:Connect(function() TweenService:Create(sc, tin, { Scale = 1 }):Play() end)
+    btn.MouseLeave:Connect(function() TweenService:Create(sc, tin, { Scale = 1 }):Play() end)
+end
+
 for name, b in pairs(tabButtons) do
+    pressFx(b)
     b.Activated:Connect(function()
-        playSound(SOUND_CLICK, 1)
+        uiSound("click")
         setTab(name)
     end)
 end
@@ -3567,7 +3901,7 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     row.AutoButtonColor = false
     row.LayoutOrder = nextOrder(parent)
     row.Parent = parent
-    addHover(row, glass(row, 0.9, 0.8))
+    glass(row, 0.9, 0.8)
     corner(row, UDim.new(0, 12))
 
     local label = Instance.new("TextLabel")
@@ -3575,7 +3909,7 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     label.Size = UDim2.new(1, -76, 1, 0)
     label.BackgroundTransparency = 1
     label.RichText = true
-    label.Text = text .. (hotkey ~= "" and ('  <font color="#8fb0e0" size="11">' .. hotkey .. "</font>") or "")
+    label.Text = text .. (hotkey ~= "" and ('  <font color="#9a9cc0" size="11">' .. hotkey .. "</font>") or "")
     label.TextColor3 = TEXT
     label.Font = Enum.Font.GothamMedium
     label.TextSize = 14
@@ -3585,7 +3919,7 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     local pill = Instance.new("Frame")
     pill.Size = UDim2.new(0, 40, 0, 22)
     pill.Position = UDim2.new(1, -52, 0.5, -11)
-    pill.BackgroundColor3 = Color3.fromRGB(92, 112, 156)
+    pill.BackgroundColor3 = Color3.fromRGB(110, 112, 140)
     pill.BackgroundTransparency = 0.4
     pill.BorderSizePixel = 0
     pill.Parent = row
@@ -3599,16 +3933,23 @@ local function makeToggle(parent, text, hotkey, getFn, callback)
     knob.Parent = pill
     corner(knob, UDim.new(1, 0))
 
+    pressFx(row)
+    row.MouseEnter:Connect(function()
+        TweenService:Create(row, TweenInfo.new(0.12), { BackgroundTransparency = 0.82 }):Play()
+    end)
+    row.MouseLeave:Connect(function()
+        TweenService:Create(row, TweenInfo.new(0.12), { BackgroundTransparency = 0.9 }):Play()
+    end)
     row.Activated:Connect(function()
         callback()
-        playSound(SOUND_CLICK, getFn() and 1.25 or 0.8)
+        task.defer(function() uiSound(getFn() and "on" or "off") end)
     end)
 
     local info = TweenInfo.new(0.15, Enum.EasingStyle.Quad)
     table.insert(updaters, function()
         local on = getFn()
         TweenService:Create(pill, info, {
-            BackgroundColor3 = on and ACCENT or Color3.fromRGB(92, 112, 156),
+            BackgroundColor3 = on and ACCENT or Color3.fromRGB(110, 112, 140),
             BackgroundTransparency = on and 0.05 or 0.4,
         }):Play()
         TweenService:Create(knob, info, {
@@ -3638,9 +3979,10 @@ local function makeSegment(parent, labels, getIdx, onSelect, isSel)
         b.Parent = row
         glass(b, 0.9, 0.8)
         corner(b, UDim.new(0, 10))
+        pressFx(b)
         b.Activated:Connect(function()
+            uiSound("click")
             onSelect(i)
-            playSound(SOUND_CLICK, 1)
         end)
         buttons[i] = b
     end
@@ -3664,11 +4006,12 @@ local function makeButton(parent, getText, getActive, callback)
     b.TextColor3 = Color3.new(1, 1, 1)
     b.LayoutOrder = nextOrder(parent)
     b.Parent = parent
-    addHover(b, glass(b, 0.9, 0.7))
+    glass(b, 0.9, 0.7)
     corner(b, UDim.new(0, 12))
+    pressFx(b)
     b.Activated:Connect(function()
+        uiSound("click")
         callback()
-        playSound(SOUND_CLICK, 1)
     end)
 
     table.insert(updaters, function()
@@ -3698,6 +4041,12 @@ sectionLabel(combatPage, T("sec_farm"))
 makeToggle(combatPage, T("tg_autofarm"), "F4", function() return state.autoFarm end, toggleFarm)
 makeToggle(combatPage, "Fast Attack", "F6", function() return state.fastAttack end, toggleFast)
 makeToggle(combatPage, T("tg_boss"), "", function() return state.autoBoss end, toggleBoss)
+sectionLabel(combatPage, T("sec_mastery"))
+makeToggle(combatPage, "Auto Mastery", "", function() return Mastery.active end, Mastery.toggle)
+makeSegment(combatPage, Mastery.labels, function() return Mastery.idx end, Mastery.setWeapon)
+makeSegment(combatPage, {"400", "500", "600"}, function() return Mastery.targetIdx end, Mastery.setTarget)
+local masteryInfo = makeInfo(combatPage)
+
 sectionLabel(combatPage, T("sec_weapon"))
 makeSegment(combatPage, {"Melee", "Sword", "Fruit"}, function() return weaponIndex end, setWeapon)
 sectionLabel(combatPage, T("sec_farm_height"))
@@ -3707,21 +4056,14 @@ sectionLabel(visualsPage, "ESP")
 makeToggle(visualsPage, "ESP Fruits", "F2", function() return state.espFruits end, toggleFruitESP)
 makeToggle(visualsPage, "ESP Players", "", function() return state.espPlayers end, togglePlayerESP)
 
-sectionLabel(autoPage, T("sec_items"))
-makeToggle(autoPage, T("tg_item_sh"), "", function() return state.autoItem and Items.target == "SH" end, toggleItemSH)
-makeToggle(autoPage, T("tg_item_gh"), "", function() return state.autoItem and Items.target == "GH" end, toggleItemGH)
-local itemInfo = makeInfo(autoPage)
-local itemSoon = makeInfo(autoPage)
-itemSoon.Text = T("items_soon")
+sectionLabel(autoPage, T("sec_ken"))
+makeToggle(autoPage, "Auto Observation", "", function() return state.autoKen end, toggleKen)
+local kenInfo = makeInfo(autoPage)
 
 sectionLabel(autoPage, T("sec_story"))
 makeToggle(autoPage, T("tg_story2"), "", function() return state.autoStory and Story.mode == 2 end, toggleSea2)
 makeToggle(autoPage, T("tg_story3"), "", function() return state.autoStory and Story.mode == 3 end, toggleSea3)
 local storyInfo = makeInfo(autoPage)
-
-sectionLabel(autoPage, T("sec_obs"))
-makeToggle(autoPage, T("tg_obs"), "", function() return state.autoObs end, toggleObs)
-local obsInfo = makeInfo(autoPage)
 
 sectionLabel(autoPage, T("sec_raid"))
 makeToggle(autoPage, "Auto Raid", "", function() return state.autoRaid end, toggleRaid)
@@ -3789,7 +4131,6 @@ local function rebuildIslandList()
         corner(b, UDim.new(0, 10))
         b.Activated:Connect(function()
             tpSelected = isl.name
-            playSound(SOUND_CLICK, 1)
             refreshGui()
         end)
         tpRows[#tpRows + 1] = { btn = b, name = isl.name }
@@ -3840,6 +4181,17 @@ shopSection(T("sec_swords"), Shop.swords)
 shopSection(T("sec_styles"), Shop.styles)
 shopSection(T("sec_abilities"), Shop.abilities)
 
+sectionLabel(pvpPage, "SILENT AIM")
+makeToggle(pvpPage, "Silent Aim", "", function() return PvP.silent end, PvP.toggleSilent)
+sectionLabel(pvpPage, T("sec_radius"))
+makeSegment(pvpPage, { "100", "200", "300", "500" }, function() return PvP.radiusIdx end, PvP.setRadius)
+makeToggle(pvpPage, T("tg_predict"), "", function() return PvP.predict end, PvP.togglePredict)
+makeToggle(pvpPage, T("tg_ignore_team"), "", function() return PvP.team end, PvP.toggleTeam)
+makeToggle(pvpPage, T("tg_target_hl"), "", function() return PvP.highlight end, PvP.toggleHighlight)
+local pvpInfo = makeInfo(pvpPage)
+sectionLabel(pvpPage, T("sec_pvp_extra"))
+makeToggle(pvpPage, T("tg_auto_buso"), "", function() return PvP.buso end, PvP.toggleBuso)
+
 sectionLabel(miscPage, T("sec_auto"))
 makeToggle(miscPage, "Auto Factory Core", "", function() return state.autoFactory end, toggleFactory)
 makeToggle(miscPage, T("tg_gacha"), "", function() return state.autoGacha end, toggleGacha)
@@ -3872,7 +4224,7 @@ makeSegment(miscPage, {"90", "130", "170", "220"}, function() return flySpeedInd
 sectionLabel(miscPage, T("sec_misc"))
 makeToggle(miscPage, T("tg_flyfruit"), "F3", function() return flying end, flyToNearestFruit)
 makeToggle(miscPage, T("tg_blur"), "", function() return state.blur end, toggleBlur)
-makeToggle(miscPage, T("tg_sounds"), "", function() return state.sounds end, toggleSounds)
+makeToggle(miscPage, T("tg_sound"), "", function() return state.sound end, toggleSound)
 
 local statusRow = Instance.new("Frame")
 statusRow.Position = UDim2.new(0, CONTENT_X, 1, -14 - 26)
@@ -3903,9 +4255,7 @@ status.Parent = statusRow
 
 refreshGui = function()
     for _, update in ipairs(updaters) do update() end
-    local anyMode = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
-        or state.autoChest or state.autoStory or state.autoObs or state.autoItem
-    dot.BackgroundColor3 = anyMode and GOOD or MUTED
+    dot.BackgroundColor3 = (state.autoFarm or state.autoFactory) and GOOD or MUTED
 end
 
 local circle = Instance.new("TextButton")
@@ -3925,10 +4275,6 @@ circle.Parent = gui
 corner(circle, UDim.new(1, 0))
 brandGradient(circle).Rotation = 45
 
-local circleScale = Instance.new("UIScale")
-circleScale.Scale = 1
-circleScale.Parent = circle
-
 local circleStroke = Instance.new("UIStroke")
 circleStroke.Color = Color3.new(1, 1, 1)
 circleStroke.Thickness = 1.5
@@ -3936,36 +4282,28 @@ circleStroke.Transparency = 0.5
 circleStroke.Parent = circle
 
 local guiShown = true
-local guiAnim = 0
-
 local function setGuiVisible(v)
-    if v == guiShown then return end
     guiShown = v
-    guiAnim = guiAnim + 1
-    local id = guiAnim
-    playSound(SOUND_CLICK, v and 1.2 or 0.9)
-
     if v then
         main.Position = circle.Position
-        circle.Visible = false
+        mainScale.Scale = 0.88
         main.Visible = true
-        mainScale.Scale = 0.85
-        TweenService:Create(mainScale, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-            {Scale = 1}):Play()
+        circle.Visible = false
+        TweenService:Create(mainScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Scale = 1,
+        }):Play()
         applyBlur()
     else
         circle.Position = main.Position
-        TweenService:Create(mainScale, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-            {Scale = 0.85}):Play()
-        task.delay(0.17, function()
-            if id ~= guiAnim then return end
-            main.Visible = false
-            mainScale.Scale = 1
-            circle.Visible = true
-            circleScale.Scale = 0.5
-            TweenService:Create(circleScale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-                {Scale = 1}):Play()
-            applyBlur()
+        TweenService:Create(mainScale, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Scale = 0.9,
+        }):Play()
+        task.delay(0.18, function()
+            if not guiShown then
+                main.Visible = false
+                circle.Visible = true
+                applyBlur()
+            end
         end)
     end
 end
@@ -3982,8 +4320,11 @@ local function killAll()
     state.autoRaid = false
     state.autoChest = false
     state.autoStory = false
-    state.autoObs = false
-    state.autoItem = false
+    state.autoKen = false
+    Mastery.active = false
+    forcedWeapon = nil
+    PvP.silent = false
+    PvP.buso = false
     stopFlying()
     stopFarmPhysics()
     clearFruitESP()
@@ -3991,13 +4332,12 @@ local function killAll()
     for _, c in ipairs(connections) do pcall(function() c:Disconnect() end) end
     pcall(function() blur:Destroy() end)
     gui:Destroy()
+    pcall(function() toastGui:Destroy() end)
     notify(T("killed"))
 end
 
 windowButton("-", -76, nil, function() setGuiVisible(false) end)
 windowButton("X", -40, RED, killAll)
-
-local dotPulse = false
 
 task.spawn(function()
     while alive do
@@ -4016,9 +4356,10 @@ task.spawn(function()
         storeInfo.Text = T("storage_info") .. storeStatus
         chestInfo.Text = T("chest_info", Chest.found, Chest.collected)
         storyInfo.Text = T("story_info", Story.status)
+        kenInfo.Text = T("ken_info", Ken.status)
+        masteryInfo.Text = T("mastery_info", Mastery.status)
+        pvpInfo.Text = PvP.status
         shopInfo.Text = T("shop_info", Shop.status)
-        obsInfo.Text = T("obs_info", Obs.status)
-        itemInfo.Text = Items.status
         local selCount = 0
         for _ in pairs(matSel) do selCount = selCount + 1 end
         local sea = currentSea()
@@ -4036,13 +4377,6 @@ task.spawn(function()
         end
         gachaInfo.Text = gtxt
         status.Text = statusText
-
-        local active = state.autoFarm or state.autoFactory or state.autoMaterials or state.autoRaid
-            or state.autoChest or state.autoStory or state.autoObs or state.autoItem
-        dotPulse = not dotPulse
-        TweenService:Create(dot, TweenInfo.new(0.5, Enum.EasingStyle.Sine),
-            {BackgroundTransparency = (active and dotPulse) and 0.6 or 0}):Play()
-
         task.wait(0.5)
     end
 end)
@@ -4070,7 +4404,7 @@ track(UIS.InputBegan:Connect(function(input, processed)
     elseif k == Enum.KeyCode.F4 then toggleFarm()
     elseif k == Enum.KeyCode.F5 then setWeapon(weaponIndex % #WEAPONS + 1)
     elseif k == Enum.KeyCode.F6 then toggleFast()
-    elseif k == Enum.KeyCode.RightShift then setGuiVisible(not guiShown)
+    elseif k == Enum.KeyCode.RightShift then setGuiVisible(not main.Visible)
     end
 end))
 
